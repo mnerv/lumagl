@@ -1,0 +1,22 @@
+[*]
+end_of_line  = LF
+charset      = utf-8
+indent_style = space
+indent_size  = 4
+insert_final_newline = true
+
+[*.{ts,js,tsx,jsx,lua}]
+charset      = utf-8
+indent_style = space
+indent_size  = 2
+
+[*.go]
+indent_style = tab
+
+[Makefile]
+indent_style = tab
+
+[*.{yml,json}]
+indent_style = space
+indent_size  = 2
+
