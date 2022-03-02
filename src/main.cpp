@@ -1,53 +1,25 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <filesystem>
+#include <array>
 
 #include "window.hpp"
 #include "buffer.hpp"
 #include "shader.hpp"
 #include "image.hpp"
+#include "texture.hpp"
+#include "camera.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-namespace luma {
-class event {
-  public:
-    enum class type {
-        window,
-        mouse,
-        keyboard,
-    };
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
-  public:
-    event(event::type const& type) : m_type(type) {}
-    virtual ~event() = default;
-
-    auto get_type() -> type { return m_type; }
-    virtual auto get_name() -> std::string;
-    virtual auto to_string() -> std::string;
-
-  protected:
-    type m_type;
-};
-
-template<typename T>
-struct vec2 {
-    T x;
-    T y;
-};
-typedef vec2<float> vec2f;
-
-auto imgui_window_size() -> vec2f {
-    auto v_min = ImGui::GetWindowContentRegionMin();
-    auto v_max = ImGui::GetWindowContentRegionMax();
-    return { v_max.x - v_min.x, v_max.y - v_min.y };
-}
-
-}
-
-float vertices[] = {
+std::array<float, 9 * 4> vertices{
 //  positions,              colors,                    texture coordinates
     -0.5f,  0.5f,  0.0f,    1.0f, 0.0f, 0.0f, 1.0f,    0.0f,  1.0f,
      0.5f,  0.5f,  0.0f,    0.0f, 1.0f, 0.0f, 1.0f,    1.0f,  1.0f,
@@ -55,7 +27,7 @@ float vertices[] = {
     -0.5f, -0.5f,  0.0f,    1.0f, 0.0f, 1.0f, 1.0f,    0.0f,  0.0f,
 };
 
-uint32_t indices[] = {
+std::array<uint32_t, 3 * 2> indices{
     0, 1, 2,
     0, 2, 3,
 };
@@ -68,10 +40,14 @@ layout (location = 2) in vec2 a_uv;
 out vec4 io_color;
 out vec2 io_uv;
 
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
 void main() {
     io_color = a_color;
     io_uv    = a_uv;
-    gl_Position = vec4(a_position, 1.0);
+    gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
 }
 )";
 
@@ -81,13 +57,19 @@ layout(location = 0) out vec4 color;
 in vec4 io_color;
 in vec2 io_uv;
 
+uniform sampler2D u_texture1;
+uniform sampler2D u_texture2;
+
 void main() {
     color = io_color;
+    color = mix(texture(u_texture1, io_uv), texture(u_texture2, io_uv), 0.5f);
+    color = texture(u_texture1, io_uv);
 }
 )";
 
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
+    window.position(luma::DONT_CARE, -800);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -105,10 +87,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    luma::buffer::array arr{};
-    luma::buffer::vertex vertex{vertices, sizeof(vertices)};
-    luma::buffer::index index{indices, sizeof(indices) / sizeof(uint32_t)};
-    luma::shader shader(vertex_shader, fragment_shader);
+    luma::buffer::array vertex_array{};
+    luma::buffer::vertex vertex{vertices.data(), sizeof(vertices)};
+    luma::buffer::index index{indices.data(), indices.size()};
+    luma::shader shader{vertex_shader, fragment_shader};
     vertex.bind();
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
@@ -121,6 +103,13 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glEnableVertexAttribArray(2);
     shader.bind();
 
+    luma::texture texture{{"/Users/k/Downloads/marin.png"}};
+    shader.uniform1i("u_texture1", 0);
+
+    luma::perspective_camera camera{};
+    camera.set_position({0.f, 0.f, 1.f});
+
+    glm::mat4 model{1.f};
 
     auto is_running = true;
     while(is_running) {
@@ -128,6 +117,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         // Handle inputs
         if (window.get_key(GLFW_KEY_Q) == GLFW_PRESS)
             is_running = false;
+
+        camera.update(window);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -156,9 +147,14 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glClearColor(0.f, 0.f, 0.f, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        texture.bind(0);
         shader.bind();
+        shader.uniform_m4("u_model", glm::value_ptr(model));
+        shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
+        shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
+
         vertex.bind();
-        arr.bind();
+        vertex_array.bind();
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
 

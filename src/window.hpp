@@ -6,6 +6,8 @@
 #include "GLFW/glfw3.h"
 
 namespace luma {
+constexpr int32_t DONT_CARE = INT32_MIN;
+
 class window{
   public:
     inline static auto GLSL_VERSION = "#version 410";
@@ -20,6 +22,7 @@ class window{
     auto should_close() -> bool;
     auto get_key(int32_t key) -> int32_t;
 
+    auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
     auto width() const -> int32_t { return m_data.width; }
     auto height() const -> int32_t { return m_data.height; }
 

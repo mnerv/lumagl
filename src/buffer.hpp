@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <cstddef>
+
 #include "glad/glad.h"
 
 namespace luma {
@@ -9,7 +9,7 @@ namespace buffer {
 
 class vertex {
   public:
-    vertex(void const* vertices, size_t const& size);
+    vertex(void const* vertices, uint32_t const& size);
     ~vertex();
 
     auto bind() -> void { glBindBuffer(GL_ARRAY_BUFFER, m_id); }
@@ -31,7 +31,7 @@ class array {
 
 class index {
   public:
-    index(uint32_t const* indices, size_t const& count);
+    index(uint32_t const* indices, uint32_t const& count);
     ~index();
 
     auto bind() -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id); }

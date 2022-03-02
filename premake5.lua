@@ -8,7 +8,7 @@ project 'helloworld'
   kind 'ConsoleApp'
   language 'C++'
   staticruntime 'On'
-  cppdialect 'C++17'
+  --cppdialect 'C++17'
 
   targetdir('%{wks.location}/bin')
   objdir('%{wks.location}/obj/%{cfg.buildcfg}/%{prj.name}')
@@ -18,9 +18,9 @@ project 'helloworld'
     'all'
   }
 
-  dependson {}
-
-  defines {}
+  buildoptions {
+    '-std=c++17'
+  }
 
   -- Need to be on docking branch
   local imgui = os.getenv("IMGUI_PATH")
@@ -36,9 +36,10 @@ project 'helloworld'
     imgui .. '/backends/imgui_impl_opengl3.cpp',
   }
 
-  local glfw = os.getenv("GLFW_PATH")
-  local glad = os.getenv("GLAD_PATH")
-  local stb  = os.getenv("STB_PATH")
+  local glfw = os.getenv('GLFW_PATH')
+  local glad = os.getenv('GLAD_PATH')
+  local stb  = os.getenv('STB_PATH')
+  local glm  = os.getenv('GLM_PATH')
 
   includedirs {
     'src',
@@ -46,6 +47,7 @@ project 'helloworld'
     imgui .. '/backends',
     glfw  .. '/include',
     glad  .. '/include',
+    glm,
     stb,
   }
 
@@ -62,7 +64,7 @@ project 'helloworld'
   filter {'not system:windows'}
     buildoptions {
       '-pedantic',
-      '-Werror'
+      '-Werror',
     }
 
   filter 'system:macosx'

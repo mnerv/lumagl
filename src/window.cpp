@@ -14,8 +14,6 @@ window::window(std::string const& name, int32_t const& width, int32_t const& hei
     if (!m_window) throw std::runtime_error("Failed to create window");
 
     glfwGetWindowPos(m_window, &m_data.x, &m_data.y);
-    glfwSetWindowPos(m_window, m_data.x, -800);
-
     glfwMakeContextCurrent(m_window);
     if (!gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)))
         throw std::runtime_error("Failed to initialize GLAD");
@@ -39,5 +37,12 @@ auto window::poll() -> void { glfwPollEvents(); }
 auto window::get_native() -> GLFWwindow* { return m_window; }
 auto window::should_close() -> bool { return glfwWindowShouldClose(m_window); }
 auto window::get_key(int32_t key) -> int32_t { return glfwGetKey(m_window, key); }
+
+auto window::position(int32_t const& x, int32_t const& y) -> void {
+    if (x != DONT_CARE) m_data.x = x;
+    if (y != DONT_CARE) m_data.y = y;
+
+    glfwSetWindowPos(m_window, m_data.x, m_data.y);
+}
 }
 
