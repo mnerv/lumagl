@@ -86,7 +86,7 @@ void main() {
     io_color = a_color;
     io_uv    = a_uv;
     //gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
-    gl_Position = vec4(a_position, 1.0f);
+    gl_Position = vec4(a_position * 2.f, 1.0f);
 }
 )";
 
@@ -254,41 +254,50 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         vertex_array.bind();
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+        framebuffer->unbind();
 
         // SECOND PASS
 
-        framebuffer->unbind();
-        glClearColor(0.f, 0.f, 0.f, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
 
-        shader_1.bind();
-        glDisable(GL_DEPTH_TEST);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
-        shader_1.uniform1i("u_texture1", 0);
-        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+        //glClearColor(0.f, 0.f, 0.f, 1.0);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glEnable(GL_DEPTH_TEST);
+
+        //shader_1.bind();
+        //glDisable(GL_DEPTH_TEST);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
+        //shader_1.uniform1i("u_texture1", 0);
+        //glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        //auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+        auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-        //ImGui::SetNextWindowDockID(dockspace_id);
+        ImGui::SetNextWindowDockID(dockspace_id);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
         ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
-        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_None);
+        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
         ImGui::PopStyleVar(5);  // Apply style
+        auto scene_size = luma::imgui_window_size();
+        ImGui::Image((void*)intptr_t(texture_color_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
+        ImGui::End();
 
-        {
-            //auto size = luma::imgui_window_size();
-        }
-
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
+        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
+        ImGui::Begin("#", nullptr, ImGuiWindowFlags_None);
+        ImGui::PopStyleVar(5);  // Apply style
+        scene_size = luma::imgui_window_size();
+        ImGui::Image((void*)intptr_t(texture_color_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
         ImGui::End();
 
         ImGui::Render();
