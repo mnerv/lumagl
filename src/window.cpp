@@ -34,13 +34,26 @@ window::~window() {
 }
 
 auto window::swap() -> void { glfwSwapBuffers(m_window); }
-auto window::poll() -> void { glfwPollEvents(); }
+auto window::poll() -> void {
+    std::for_each(std::begin(m_data.keys), std::end(m_data.keys), [this](auto& key) {
+        key->update(this->get_key(key->value));
+    });
+    glfwPollEvents();
+}
 auto window::get_native() -> GLFWwindow* { return m_window; }
 auto window::should_close() -> bool { return glfwWindowShouldClose(m_window); }
 auto window::get_key(int32_t key) -> int32_t { return glfwGetKey(m_window, key); }
+auto window::make_key(int32_t key) -> std::shared_ptr<state::key> {
+    auto new_key = luma::state::make_key(key);
+    m_data.keys.push_back(new_key);
+    return new_key;
+}
 
 auto window::update_key(state::key& key) -> void {
-    key.update(this->get_key(key.key));
+    key.update(this->get_key(key.value));
+}
+auto window::update_key(std::shared_ptr<state::key> const& key) -> void {
+    key->update(this->get_key(key->value));
 }
 
 auto window::position(int32_t const& x, int32_t const& y) -> void {

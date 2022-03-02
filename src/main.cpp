@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <filesystem>
 #include <array>
+#include <cmath>
 
 #include "window.hpp"
 #include "buffer.hpp"
@@ -108,26 +109,85 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     shader.uniform1i("u_texture1", 0);
 
     luma::perspective_camera camera{};
-    camera.set_position({0.f, 0.f, 1.f});
+    camera.move({0.f, 0.f, -10.f});
+
     glm::mat4 model{1.f};
 
-    bool is_cursor_on = true;
-    luma::state::key toggle_cursor{GLFW_KEY_ESCAPE};
-    luma::state::key quit_key{GLFW_KEY_Q};
+    bool is_cursor_on  = true;
+    auto toggle_cursor = window.make_key(GLFW_KEY_ESCAPE);
+    auto quit_key      = window.make_key(GLFW_KEY_Q);
+    auto left_key      = window.make_key(GLFW_KEY_A);
+    auto right_key     = window.make_key(GLFW_KEY_D);
+    auto up_key        = window.make_key(GLFW_KEY_W);
+    auto down_key      = window.make_key(GLFW_KEY_S);
+    auto plus_alt      = window.make_key(GLFW_KEY_F);
+    auto neg_alt       = window.make_key(GLFW_KEY_G);
+    auto speed_boost   = window.make_key(GLFW_KEY_LEFT_SHIFT);
+
+    double time[2]{glfwGetTime(), 0};
+    double delta_time = 0;
+    float camera_speed = 1.f;
+
+    glm::dvec2 mouse_current{};
+    glm::dvec2 mouse_previous{};
+    float sensitivity = 0.1f;
+    float yaw = 0.f, pitch = 0.f;
+    float boost = 1.0f;
 
     auto is_running = true;
     while(is_running) {
+        time[1] = time[0];
+        time[0] = glfwGetTime();
+        delta_time = time[0] - time[1];
+
         is_running = !window.should_close();
+        mouse_previous = mouse_current;
+        glfwGetCursorPos(window.get_native(), &mouse_current.x, &mouse_current.y);
+        auto mouse_delta = mouse_current - mouse_previous;
 
-        window.update_key(quit_key);
-        window.update_key(toggle_cursor);
-
-        // Handle inputs
+          // Handle inputs
         if (luma::state::is_press(quit_key)) is_running = false;
         if (luma::state::is_clicked(toggle_cursor)) {
             is_cursor_on = !is_cursor_on;
             auto cursor_status = is_cursor_on ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
             glfwSetInputMode(window.get_native(), GLFW_CURSOR, cursor_status);
+        }
+
+        if (luma::state::is_press(up_key)) {
+            camera.move_delta(camera_speed * boost * camera.front() * float(delta_time));
+        } else if (luma::state::is_press(down_key)) {
+            camera.move_delta(-camera_speed * boost * camera.front() * float(delta_time));
+        }
+
+        if (luma::state::is_press(left_key)) {
+            camera.move_delta(-camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
+        } else if (luma::state::is_press(right_key)) {
+            camera.move_delta(camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
+        }
+
+        if (luma::state::is_press(plus_alt)) {
+            camera.move_delta(camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
+        } else if (luma::state::is_press(neg_alt)) {
+            camera.move_delta(-camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
+        }
+
+        if (luma::state::is_press(speed_boost)) {
+            boost = 2.f;
+        } else {
+            boost = 1.f;
+        }
+
+        if (!is_cursor_on) {
+            yaw   += mouse_delta.x * -sensitivity;
+            pitch += mouse_delta.y * -sensitivity;
+
+            if (pitch > 90.f - 1.f) pitch = 89.f;
+            if (pitch < -90.f + 1.f) pitch = -89.f;
+            glm::vec3 direction{};
+            direction.x = std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
+            direction.z = std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
+            direction.y = std::sin(glm::radians(pitch));
+            camera.set_front(glm::normalize(direction));
         }
         camera.update(window);
 
@@ -139,18 +199,19 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         //auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
         //ImGui::SetNextWindowDockID(dockspace_id);
-        //ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
-        //ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
-        //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        //ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
-        //ImGui::PopStyleVar(4);  // Apply style
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
+        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
+        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_None);
+        ImGui::PopStyleVar(5);  // Apply style
 
-        //{
-        //    //auto size = luma::imgui_window_size();
-        //}
+        {
+            //auto size = luma::imgui_window_size();
+        }
 
-        //ImGui::End();
+        ImGui::End();
 
         ImGui::Render();
 

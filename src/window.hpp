@@ -2,6 +2,7 @@
 #include <string>
 #include <cstdint>
 #include <array>
+#include <vector>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -27,7 +28,11 @@ class window{
     auto get_native() -> GLFWwindow*;
     auto should_close() -> bool;
     auto get_key(int32_t key) -> int32_t;
+    auto make_key(int32_t key) -> std::shared_ptr<state::key>;
+
     auto update_key(state::key& key) -> void;
+    auto update_key(std::shared_ptr<state::key> const& key) -> void;
+    auto update_keys(std::vector<std::shared_ptr<luma::state::key>> const& keys) -> void;
 
     auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
     auto width() const -> int32_t { return m_data.width; }
@@ -41,6 +46,7 @@ class window{
         int32_t height;
         int32_t x;
         int32_t y;
+        std::vector<std::shared_ptr<state::key>> keys;
     };
     data m_data;
 };
