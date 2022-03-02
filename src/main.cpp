@@ -2,44 +2,16 @@
 #include <string>
 #include <stdexcept>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "window.hpp"
+#include "buffer.hpp"
+#include "shader.hpp"
+#include "image.hpp"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
 
 namespace luma {
-class image {
-  public:
-    image(std::string const& filename, int32_t const& channel = 0)
-        : m_filename(filename), m_width(0), m_height(0), m_channels(channel) {
-        m_buffer = stbi_load(m_filename.c_str(), &m_width, &m_height, &m_channels, 0);
-    }
-    ~image() {
-        stbi_image_free(m_buffer);
-    }
-
-    auto buffer() -> uint8_t* { return m_buffer; }
-    auto width() -> int32_t { return m_width; }
-    auto height() -> int32_t { return m_height; }
-    auto channels() -> int32_t { return m_channels; }
-
-    auto info() -> std::string {
-        return std::string("luma::image{width: ") + std::to_string(m_width) 
-               + ", height: "   + std::to_string(m_height)
-               + ", channels: " + std::to_string(m_channels) + "}";
-    }
-
-  private:
-    std::string m_filename;
-    int32_t     m_width;
-    int32_t     m_height;
-    int32_t     m_channels;
-    uint8_t*    m_buffer;
-};
-
 class event {
   public:
     enum class type {
@@ -60,64 +32,59 @@ class event {
     type m_type;
 };
 
-class window{
-  public:
-    inline static auto GLSL_VERSION = "#version 410";
-
-  public:
-    window(std::string const& name = "helloworld", int32_t const& width = 640, int32_t const& height = 480) {
-        if (!glfwInit()) throw std::runtime_error("error initialising glfw");
-        m_data.width  = width;
-        m_data.height = height;
-
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-        m_window = glfwCreateWindow(m_data.width, m_data.height, name.c_str(), nullptr, nullptr);
-        if (!m_window) throw std::runtime_error("Failed to create window");
-
-        glfwGetWindowPos(m_window, &m_data.x, &m_data.y);
-        glfwSetWindowPos(m_window, m_data.x, -800);
-
-        glfwMakeContextCurrent(m_window);
-        if (!gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)))
-            throw std::runtime_error("Failed to initialize GLAD");
-
-        glfwSetWindowUserPointer(m_window, &m_data);
-
-        glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int32_t width, int32_t height) {
-            auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
-            data->width  = width;
-            data->height = height;
-            glViewport(0, 0, width, height);
-        });
-    }
-    ~window() {
-        glfwTerminate();
-    }
-
-    auto swap() -> void { glfwSwapBuffers(m_window); }
-    auto poll() -> void { glfwPollEvents(); }
-    auto get_native() -> GLFWwindow* { return m_window; }
-    auto should_close() -> bool { return glfwWindowShouldClose(m_window); }
-    auto get_key(int32_t key) -> int32_t { return glfwGetKey(m_window, key); }
-
-    auto width() const -> int32_t { return m_data.width; }
-    auto height() const -> int32_t { return m_data.height; }
-
-  private:
-    GLFWwindow* m_window;
-
-    struct data {
-        int32_t width;
-        int32_t height;
-        int32_t x;
-        int32_t y;
-    };
-    data m_data;
+template<typename T>
+struct vec2 {
+    T x;
+    T y;
 };
+typedef vec2<float> vec2f;
+
+auto imgui_window_size() -> vec2f {
+    auto v_min = ImGui::GetWindowContentRegionMin();
+    auto v_max = ImGui::GetWindowContentRegionMax();
+    return { v_max.x - v_min.x, v_max.y - v_min.y };
 }
+
+}
+
+float vertices[] = {
+//  positions,              colors,                    texture coordinates
+    -0.5f,  0.5f,  0.0f,    1.0f, 0.0f, 0.0f, 1.0f,    0.0f,  1.0f,
+     0.5f,  0.5f,  0.0f,    0.0f, 1.0f, 0.0f, 1.0f,    1.0f,  1.0f,
+     0.5f, -0.5f,  0.0f,    0.0f, 0.0f, 1.0f, 1.0f,    1.0f,  0.0f,
+    -0.5f, -0.5f,  0.0f,    1.0f, 0.0f, 1.0f, 1.0f,    0.0f,  0.0f,
+};
+
+uint32_t indices[] = {
+    0, 1, 2,
+    0, 2, 3,
+};
+
+auto vertex_shader = R"(#version 410 core
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec4 a_color;
+layout (location = 2) in vec2 a_uv;
+
+out vec4 io_color;
+out vec2 io_uv;
+
+void main() {
+    io_color = a_color;
+    io_uv    = a_uv;
+    gl_Position = vec4(a_position, 1.0);
+}
+)";
+
+auto fragment_shader = R"(#version 410 core
+layout(location = 0) out vec4 color;
+
+in vec4 io_color;
+in vec2 io_uv;
+
+void main() {
+    color = io_color;
+}
+)";
 
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
@@ -138,6 +105,23 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
+    luma::buffer::array arr{};
+    luma::buffer::vertex vertex{vertices, sizeof(vertices)};
+    luma::buffer::index index{indices, sizeof(indices) / sizeof(uint32_t)};
+    luma::shader shader(vertex_shader, fragment_shader);
+    vertex.bind();
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    shader.bind();
+
+
     auto is_running = true;
     while(is_running) {
         is_running = !window.should_close();
@@ -150,11 +134,21 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+        //auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-        ImGui::SetNextWindowDockID(dockspace_id);
-        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
-        ImGui::End();
+        //ImGui::SetNextWindowDockID(dockspace_id);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
+        //ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        //ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
+        //ImGui::PopStyleVar(4);  // Apply style
+
+        //{
+        //    //auto size = luma::imgui_window_size();
+        //}
+
+        //ImGui::End();
 
         ImGui::Render();
 
@@ -162,7 +156,13 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glClearColor(0.f, 0.f, 0.f, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Begin Draw
+        shader.bind();
+        vertex.bind();
+        arr.bind();
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+
+        // Begin ImGui Draw
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             auto backup_current = glfwGetCurrentContext();
