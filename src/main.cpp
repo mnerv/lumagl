@@ -67,6 +67,9 @@ void main() {
 }
 )";
 
+namespace luma {
+}
+
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     window.position(luma::DONT_CARE, -800);
@@ -108,15 +111,33 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     luma::perspective_camera camera{};
     camera.set_position({0.f, 0.f, 1.f});
-
     glm::mat4 model{1.f};
+
+    bool is_cursor_on = true;
+    luma::state::key toggle_cursor{GLFW_KEY_ESCAPE};
+    luma::state::key quit_key{GLFW_KEY_Q};
+
+    auto is_clicked = [](luma::state::key const& key) {
+        return key.states[0] == GLFW_PRESS && key.states[1] == GLFW_RELEASE;
+    };
+    auto is_pressed = [](luma::state::key const& key) {
+        return key.states[0] == GLFW_PRESS;
+    };
 
     auto is_running = true;
     while(is_running) {
         is_running = !window.should_close();
+
+        window.query_key(quit_key);
+        window.query_key(toggle_cursor);
+
         // Handle inputs
-        if (window.get_key(GLFW_KEY_Q) == GLFW_PRESS)
-            is_running = false;
+        if (is_pressed(quit_key)) is_running = false;
+        if (is_clicked(toggle_cursor)) {
+            is_cursor_on = !is_cursor_on;
+            auto cursor_status = is_cursor_on ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
+            glfwSetInputMode(window.get_native(), GLFW_CURSOR, cursor_status);
+        }
 
         camera.update(window);
 

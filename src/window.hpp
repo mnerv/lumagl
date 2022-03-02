@@ -1,12 +1,21 @@
 #pragma once
 #include <string>
 #include <cstdint>
+#include <array>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
 namespace luma {
 constexpr int32_t DONT_CARE = INT32_MIN;
+
+namespace state {
+constexpr auto STATE_SIZE = 2;
+struct key {
+    int32_t key;
+    std::array<bool, STATE_SIZE> states{false, false};
+};
+}
 
 class window{
   public:
@@ -21,6 +30,7 @@ class window{
     auto get_native() -> GLFWwindow*;
     auto should_close() -> bool;
     auto get_key(int32_t key) -> int32_t;
+    auto query_key(state::key& key) -> void;
 
     auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
     auto width() const -> int32_t { return m_data.width; }

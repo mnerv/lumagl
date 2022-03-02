@@ -38,6 +38,11 @@ auto window::get_native() -> GLFWwindow* { return m_window; }
 auto window::should_close() -> bool { return glfwWindowShouldClose(m_window); }
 auto window::get_key(int32_t key) -> int32_t { return glfwGetKey(m_window, key); }
 
+auto window::query_key(state::key& key) -> void {
+    key.states[1] = key.states[0];
+    key.states[0] = this->get_key(key.key);
+}
+
 auto window::position(int32_t const& x, int32_t const& y) -> void {
     if (x != DONT_CARE) m_data.x = x;
     if (y != DONT_CARE) m_data.y = y;
