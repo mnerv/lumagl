@@ -9,12 +9,9 @@
 namespace luma {
 constexpr int32_t DONT_CARE = INT32_MIN;
 
+// forward declaration
 namespace state {
-constexpr auto STATE_SIZE = 2;
-struct key {
-    int32_t key;
-    std::array<bool, STATE_SIZE> states{false, false};
-};
+struct key;
 }
 
 class window{

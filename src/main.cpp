@@ -10,6 +10,7 @@
 #include "image.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
+#include "input.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -117,13 +118,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     luma::state::key toggle_cursor{GLFW_KEY_ESCAPE};
     luma::state::key quit_key{GLFW_KEY_Q};
 
-    auto is_clicked = [](luma::state::key const& key) {
-        return key.states[0] == GLFW_PRESS && key.states[1] == GLFW_RELEASE;
-    };
-    auto is_pressed = [](luma::state::key const& key) {
-        return key.states[0] == GLFW_PRESS;
-    };
-
     auto is_running = true;
     while(is_running) {
         is_running = !window.should_close();
@@ -132,13 +126,12 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         window.query_key(toggle_cursor);
 
         // Handle inputs
-        if (is_pressed(quit_key)) is_running = false;
-        if (is_clicked(toggle_cursor)) {
+        if (luma::state::is_press(quit_key)) is_running = false;
+        if (luma::state::is_clicked(toggle_cursor)) {
             is_cursor_on = !is_cursor_on;
             auto cursor_status = is_cursor_on ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
             glfwSetInputMode(window.get_native(), GLFW_CURSOR, cursor_status);
         }
-
         camera.update(window);
 
         // New Dear ImGui frame

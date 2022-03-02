@@ -1,4 +1,5 @@
 #include "window.hpp"
+#include "input.hpp"
 
 namespace luma {
 window::window(std::string const& name, int32_t const& width, int32_t const& height) {
