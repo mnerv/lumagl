@@ -5,6 +5,7 @@
 #include <array>
 #include <cmath>
 
+#include "luma.hpp"
 #include "window.hpp"
 #include "buffer.hpp"
 #include "shader.hpp"
@@ -69,6 +70,40 @@ void main() {
 }
 )";
 
+auto vertex_shader_1 = R"(#version 410 core
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec4 a_color;
+layout (location = 2) in vec2 a_uv;
+
+out vec4 io_color;
+out vec2 io_uv;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
+void main() {
+    io_color = a_color;
+    io_uv    = a_uv;
+    //gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
+    gl_Position = vec4(a_position, 1.0f);
+}
+)";
+
+auto fragment_shader_1 = R"(#version 410 core
+layout(location = 0) out vec4 color;
+
+in vec4 io_color;
+in vec2 io_uv;
+
+uniform sampler2D u_texture1;
+uniform sampler2D u_texture2;
+
+void main() {
+    color = texture(u_texture1, io_uv);
+}
+)";
+
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     window.position(luma::DONT_CARE, -800);
@@ -107,6 +142,18 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     luma::texture texture{{"/Users/k/Downloads/marin.png"}};
     shader.uniform1i("u_texture1", 0);
+    luma::shader shader_1{vertex_shader_1, fragment_shader};
+    auto framebuffer  = luma::make_ref<luma::buffer::frame>();
+    uint32_t texture_color_buffer;
+    glGenTextures(1, &texture_color_buffer);
+    glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window.width(), window.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_color_buffer, 0);
+    auto renderbuffer = luma::make_ref<luma::buffer::render>(window.width(), window.height());
+    renderbuffer->unbind();
 
     luma::perspective_camera camera{};
     camera.move({0.f, 0.f, -10.f});
@@ -172,7 +219,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         }
 
         if (luma::state::is_press(speed_boost)) {
-            boost = 2.f;
+            boost = 3.f;
         } else {
             boost = 1.f;
         }
@@ -190,6 +237,37 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             camera.set_front(glm::normalize(direction));
         }
         camera.update(window);
+
+        // FIRST PASS
+        framebuffer->bind();
+        glClearColor(0.f, 0.f, 0.f, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
+        texture.bind(0);
+        shader.bind();
+        shader.uniform_m4("u_model", glm::value_ptr(model));
+        shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
+        shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
+
+        vertex.bind();
+        vertex_array.bind();
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+
+        // SECOND PASS
+
+        framebuffer->unbind();
+        glClearColor(0.f, 0.f, 0.f, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
+        shader_1.bind();
+        glDisable(GL_DEPTH_TEST);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
+        shader_1.uniform1i("u_texture1", 0);
+        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -215,22 +293,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         ImGui::Render();
 
-        // Viewport resize
-        glClearColor(0.f, 0.f, 0.f, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        texture.bind(0);
-        shader.bind();
-        shader.uniform_m4("u_model", glm::value_ptr(model));
-        shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
-        shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
-
-        vertex.bind();
-        vertex_array.bind();
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
-
-        // Begin ImGui Draw
+         // Begin ImGui Draw
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             auto backup_current = glfwGetCurrentContext();

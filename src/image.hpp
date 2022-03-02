@@ -7,6 +7,8 @@ namespace luma {
 class image {
   public:
     image(std::string const& filename, int32_t const& channel = 0, bool const& flip = true);
+    image(int32_t const& width = 256, int32_t const& height = 256, int32_t const& channels = 3);
+    image(image const& img);
     ~image();
 
     auto buffer() const -> uint8_t* { return m_buffer; }
@@ -26,6 +28,7 @@ class image {
     int32_t     m_height;
     int32_t     m_channels;
     uint8_t*    m_buffer;
+    bool        m_is_loaded;
 };
 }
 

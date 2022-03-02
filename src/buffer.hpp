@@ -2,9 +2,8 @@
 
 #include <cstdint>
 
-#include "glad/glad.h"
-
 namespace luma {
+
 namespace buffer {
 
 class vertex {
@@ -12,7 +11,7 @@ class vertex {
     vertex(void const* vertices, uint32_t const& size);
     ~vertex();
 
-    auto bind() -> void { glBindBuffer(GL_ARRAY_BUFFER, m_id); }
+    auto bind() const -> void;
 
   private:
     uint32_t m_id;
@@ -23,7 +22,7 @@ class array {
     array();
     ~array();
 
-    auto bind() -> void { glBindVertexArray(m_id); }
+    auto bind() const -> void;
 
   private:
     uint32_t m_id;
@@ -34,12 +33,38 @@ class index {
     index(uint32_t const* indices, uint32_t const& count);
     ~index();
 
-    auto bind() -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id); }
+    auto bind() const -> void;
     auto count() -> uint32_t { return m_count; }
 
   private:
     uint32_t m_id;
     uint32_t m_count;
+};
+
+class frame {
+  public:
+    frame();
+    ~frame();
+
+    auto get_id() const -> int32_t { return m_id; }
+    auto bind() const -> void;
+    auto unbind() const -> void;
+
+  private:
+    uint32_t m_id;
+};
+
+class render {
+  public:
+    render(int32_t const& width, int32_t const& height);
+    ~render();
+
+    auto get_id() const -> int32_t { return m_id; }
+    auto bind() const -> void;
+    auto unbind() const -> void;
+
+  private:
+    uint32_t m_id;
 };
 
 }}

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <vector>
+#include <unordered_map>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -46,7 +47,7 @@ class window{
         int32_t height;
         int32_t x;
         int32_t y;
-        std::vector<std::shared_ptr<state::key>> keys;
+        std::unordered_map<int32_t, std::shared_ptr<state::key>> keys;
     };
     data m_data;
 };
