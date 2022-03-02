@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -26,9 +27,9 @@ class image {
     auto channels() -> int32_t { return m_channels; }
 
     auto info() -> std::string {
-        return std::string("luma::image{ width: ") + std::to_string(m_width) 
-            + ", height: " + std::to_string(m_height)
-            + ", channels: " + std::to_string(m_channels) + " }";
+        return std::string("luma::image{width: ") + std::to_string(m_width) 
+               + ", height: "   + std::to_string(m_height)
+               + ", channels: " + std::to_string(m_channels) + "}";
     }
 
   private:
@@ -38,30 +39,88 @@ class image {
     int32_t     m_channels;
     uint8_t*    m_buffer;
 };
+
+class event {
+  public:
+    enum class type {
+        window,
+        mouse,
+        keyboard,
+    };
+
+  public:
+    event(event::type const& type) : m_type(type) {}
+    virtual ~event() = default;
+
+    auto get_type() -> type { return m_type; }
+    virtual auto get_name() -> std::string;
+    virtual auto to_string() -> std::string;
+
+  protected:
+    type m_type;
+};
+
+class window{
+  public:
+    inline static auto GLSL_VERSION = "#version 410";
+
+  public:
+    window(std::string const& name = "helloworld", int32_t const& width = 640, int32_t const& height = 480) {
+        if (!glfwInit()) throw std::runtime_error("error initialising glfw");
+        m_data.width  = width;
+        m_data.height = height;
+
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        m_window = glfwCreateWindow(m_data.width, m_data.height, name.c_str(), nullptr, nullptr);
+        if (!m_window) throw std::runtime_error("Failed to create window");
+
+        glfwGetWindowPos(m_window, &m_data.x, &m_data.y);
+        glfwSetWindowPos(m_window, m_data.x, -800);
+
+        glfwMakeContextCurrent(m_window);
+        if (!gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)))
+            throw std::runtime_error("Failed to initialize GLAD");
+
+        glfwSetWindowUserPointer(m_window, &m_data);
+
+        glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int32_t width, int32_t height) {
+            auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+            data->width  = width;
+            data->height = height;
+            glViewport(0, 0, width, height);
+        });
+    }
+    ~window() {
+        glfwTerminate();
+    }
+
+    auto swap() -> void { glfwSwapBuffers(m_window); }
+    auto poll() -> void { glfwPollEvents(); }
+    auto get_native() -> GLFWwindow* { return m_window; }
+    auto should_close() -> bool { return glfwWindowShouldClose(m_window); }
+    auto get_key(int32_t key) -> int32_t { return glfwGetKey(m_window, key); }
+
+    auto width() const -> int32_t { return m_data.width; }
+    auto height() const -> int32_t { return m_data.height; }
+
+  private:
+    GLFWwindow* m_window;
+
+    struct data {
+        int32_t width;
+        int32_t height;
+        int32_t x;
+        int32_t y;
+    };
+    data m_data;
+};
 }
 
-auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char const* argv[]) -> int32_t {
-    GLFWwindow* window;
-    if (!glfwInit()) return -1;
-
-    constexpr auto GLSL_VERSION = "#version 410";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    window = glfwCreateWindow(640, 480, "Hello, World!", nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to initialize GLFW\n";
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD\n";
-        glfwTerminate();
-        return -1;
-    }
+auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
+    luma::window window;
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -76,35 +135,34 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char const* argv[]) ->
         style.WindowRounding= 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(GLSL_VERSION);
+    ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
+    ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    while(!glfwWindowShouldClose(window)) {
+    auto is_running = true;
+    while(is_running) {
+        is_running = !window.should_close();
+        // Handle inputs
+        if (window.get_key(GLFW_KEY_Q) == GLFW_PRESS)
+            is_running = false;
+
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::DockSpaceOverViewport();
 
-        ImGui::Begin("Hello, World!");
-        ImGui::Text("This is some text!");
-        ImGui::End();
+        auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-        ImGui::Begin("The world is ending");
-        ImGui::End();
-
-        ImGui::Begin("Console");
+        ImGui::SetNextWindowDockID(dockspace_id);
+        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
         ImGui::End();
 
         ImGui::Render();
 
         // Viewport resize
-        int32_t width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
         glClearColor(0.f, 0.f, 0.f, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // Begin Draw
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             auto backup_current = glfwGetCurrentContext();
@@ -113,8 +171,8 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char const* argv[]) ->
             glfwMakeContextCurrent(backup_current);
         }
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        window.swap();
+        window.poll();
     }
 
     // Dear ImGui cleanup
@@ -122,7 +180,6 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char const* argv[]) ->
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    glfwTerminate();
     return 0;
 }
 
