@@ -68,9 +68,6 @@ void main() {
 }
 )";
 
-namespace luma {
-}
-
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     window.position(luma::DONT_CARE, -800);
@@ -122,8 +119,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     while(is_running) {
         is_running = !window.should_close();
 
-        window.query_key(quit_key);
-        window.query_key(toggle_cursor);
+        window.update_key(quit_key);
+        window.update_key(toggle_cursor);
 
         // Handle inputs
         if (luma::state::is_press(quit_key)) is_running = false;

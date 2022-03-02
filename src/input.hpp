@@ -12,6 +12,8 @@ constexpr auto STATE_SIZE = 2;
 struct key {
     int32_t key;
     std::array<bool, STATE_SIZE> states{false, false};
+
+    auto update(bool const& state) -> void;
 };
 
 auto is_clicked(key const& key) -> bool;

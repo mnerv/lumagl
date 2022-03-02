@@ -27,7 +27,7 @@ class window{
     auto get_native() -> GLFWwindow*;
     auto should_close() -> bool;
     auto get_key(int32_t key) -> int32_t;
-    auto query_key(state::key& key) -> void;
+    auto update_key(state::key& key) -> void;
 
     auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
     auto width() const -> int32_t { return m_data.width; }
