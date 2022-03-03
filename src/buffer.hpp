@@ -1,17 +1,29 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
+
+#include "luma.hpp"
 
 namespace luma {
+
+// forward declaration
+namespace mesh {
+struct vertex;
+}
 
 namespace buffer {
 
 class vertex {
   public:
     vertex(void const* vertices, uint32_t const& size);
+    vertex(std::vector<mesh::vertex> const& vertices);
     ~vertex();
 
     auto bind() const -> void;
+
+  private:
+    auto create_buffer() const -> uint32_t;
 
   private:
     uint32_t m_id;
@@ -31,10 +43,14 @@ class array {
 class index {
   public:
     index(uint32_t const* indices, uint32_t const& count);
+    index(std::vector<uint32_t> const& indices);
     ~index();
 
     auto bind() const -> void;
     auto count() -> uint32_t { return m_count; }
+
+  private:
+    auto create_buffer() -> uint32_t;
 
   private:
     uint32_t m_id;

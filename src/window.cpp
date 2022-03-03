@@ -26,7 +26,6 @@ window::window(std::string const& name, int32_t const& width, int32_t const& hei
         auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
         data->width  = width;
         data->height = height;
-        glViewport(0, 0, width, height);
     });
 
     //glfwSetKeyCallback(m_window,
@@ -34,6 +33,8 @@ window::window(std::string const& name, int32_t const& width, int32_t const& hei
     //    auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
     //    data->keys.at(key
     //});
+
+    glfwGetWindowSize(m_window, &m_data.width, &m_data.height);
 }
 window::~window() {
     glfwTerminate();

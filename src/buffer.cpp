@@ -1,19 +1,30 @@
 #include "buffer.hpp"
 #include "glad/glad.h"
+#include "mesh.hpp"
 
 namespace luma {
 namespace buffer {
 
 vertex::vertex(void const* vertices, uint32_t const& size) {
-    glGenBuffers(1, &m_id);
-    glBindBuffer(GL_ARRAY_BUFFER, m_id);
+    m_id = create_buffer();
     glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+}
+vertex::vertex(std::vector<mesh::vertex> const& vertices) {
+    m_id = create_buffer();
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(luma::mesh::vertex), vertices.data(), GL_STATIC_DRAW);
 }
 vertex::~vertex() {
     glDeleteBuffers(1, &m_id);
 }
 auto vertex::bind() const -> void {
     glBindBuffer(GL_ARRAY_BUFFER, m_id);
+}
+
+auto vertex::create_buffer() const -> uint32_t {
+    uint32_t id;
+    glGenBuffers(1, &id);
+    glBindBuffer(GL_ARRAY_BUFFER, id);
+    return id;
 }
 
 array::array() {
@@ -28,9 +39,13 @@ auto array::bind() const -> void {
 }
 
 index::index(uint32_t const* indices, uint32_t const& count) : m_count(count) {
-    glGenBuffers(1, &m_id);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
+    m_id = create_buffer();
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+}
+index::index(std::vector<uint32_t> const& indices) {
+    m_id = create_buffer();
+    m_count = indices.size();
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 }
 
 index::~index() {
@@ -38,6 +53,13 @@ index::~index() {
 }
 auto index::bind() const -> void {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
+}
+
+auto index::create_buffer() -> uint32_t {
+    uint32_t id;
+    glGenBuffers(1, &id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+    return id;
 }
 
 frame::frame() {

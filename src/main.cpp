@@ -13,6 +13,7 @@
 #include "texture.hpp"
 #include "camera.hpp"
 #include "input.hpp"
+#include "mesh.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -21,19 +22,6 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
-
-std::array<float, 9 * 4> vertices{
-//  positions,              colors,                    texture coordinates
-    -0.5f,  0.5f,  0.0f,    1.0f, 0.0f, 0.0f, 1.0f,    0.0f,  1.0f,
-     0.5f,  0.5f,  0.0f,    0.0f, 1.0f, 0.0f, 1.0f,    1.0f,  1.0f,
-     0.5f, -0.5f,  0.0f,    0.0f, 0.0f, 1.0f, 1.0f,    1.0f,  0.0f,
-    -0.5f, -0.5f,  0.0f,    1.0f, 0.0f, 1.0f, 1.0f,    0.0f,  0.0f,
-};
-
-std::array<uint32_t, 3 * 2> indices{
-    0, 1, 2,
-    0, 2, 3,
-};
 
 auto vertex_shader = R"(#version 410 core
 layout (location = 0) in vec3 a_position;
@@ -106,7 +94,7 @@ void main() {
 
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
-    window.position(luma::DONT_CARE, -800);
+    //window.position(luma::DONT_CARE, -800);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -124,31 +112,37 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
+    auto plane = luma::mesh::plane();
     luma::buffer::array vertex_array{};
-    luma::buffer::vertex vertex{vertices.data(), sizeof(vertices)};
-    luma::buffer::index index{indices.data(), indices.size()};
+    luma::buffer::vertex vertex{plane->vertices()};
+    luma::buffer::index index{plane->indices()};
     luma::shader shader{vertex_shader, fragment_shader};
     vertex.bind();
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, position));
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, color));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(7 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, uv));
     glEnableVertexAttribArray(2);
     shader.bind();
 
     shader.uniform1i("u_texture1", 0);
     luma::texture texture{"/Users/k/Downloads/marin.png"};
 
+    int32_t width, height;
+    glfwGetFramebufferSize(window.get_native(), &width, &height);
+    int32_t w_width, w_height;
+    glfwGetWindowSize(window.get_native(), &w_width, &w_height);
+
     luma::shader shader_1{vertex_shader_1, fragment_shader};
     auto framebuffer = luma::make_ref<luma::buffer::frame>();
     uint32_t texture_render_buffer;
     glGenTextures(1, &texture_render_buffer);
     glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window.width(), window.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -157,7 +151,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     uint32_t render_buffer;
     glGenRenderbuffers(1, &render_buffer);
     glBindRenderbuffer(GL_RENDERBUFFER, render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, window.width(), window.height());
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_buffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -179,6 +173,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto plus_alt      = window.make_key(GLFW_KEY_F);
     auto neg_alt       = window.make_key(GLFW_KEY_V);
     auto speed_boost   = window.make_key(GLFW_KEY_LEFT_SHIFT);
+    auto reset_camera  = window.make_key(GLFW_KEY_0);
 
     double time[2]{glfwGetTime(), 0};
     double delta_time = 0;
@@ -189,16 +184,22 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     float sensitivity = 0.1f;
     float yaw = 0.f, pitch = 0.f;
     float boost = 1.0f;
-    bool first_loop = true;
+    //bool first_loop = true;
 
     glm::vec2 scene_size{window.width(), window.height()};
 
+
     auto is_running = true;
     while(is_running) {
+        glfwGetFramebufferSize(window.get_native(), &width, &height);
+        glfwGetWindowSize(window.get_native(), &w_width, &w_height);
+
         time[1] = time[0];
         time[0] = glfwGetTime();
         delta_time = time[0] - time[1];
 
+        scene_size.x = window.width();
+        scene_size.y = window.height();
         is_running = !window.should_close();
         mouse_previous = mouse_current;
         glfwGetCursorPos(window.get_native(), &mouse_current.x, &mouse_current.y);
@@ -236,6 +237,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             boost = 1.f;
         }
 
+        if (luma::state::is_clicked(reset_camera)) {
+            yaw = 0;
+            pitch = 1;
+        }
+
         if (!is_cursor_on) {
             yaw   += mouse_delta.x * -sensitivity;
             pitch += mouse_delta.y * -sensitivity;
@@ -251,14 +257,14 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         framebuffer->bind();
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, int32_t(scene_size.x), int32_t(scene_size.y), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_render_buffer, 0);
 
         glBindRenderbuffer(GL_RENDERBUFFER, render_buffer);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, int32_t(scene_size.x), int32_t(scene_size.y));
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_buffer);
 
@@ -271,7 +277,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         // FIRST PASS
         framebuffer->bind();
-        glClearColor(0.f, 0.f, 0.f, 1.0f);
+        glViewport(0, 0, width, height);
+        glClearColor(1.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
@@ -288,27 +295,40 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
         framebuffer->unbind();
 
+        glViewport(0, 0, width, height);
+        glClearColor(0.f, 0.f, 0.f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
+        shader_1.bind();
+        shader_1.uniform1i("u_texture1", 0);
+        vertex.bind();
+        vertex_array.bind();
+        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+        //auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-        if (first_loop) {
-            first_loop = false;
-            ImGui::SetNextWindowDockID(dockspace_id);
-        }
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
-        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
-        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_None | ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::PopStyleVar(5);  // Apply style
-        scene_size = luma::imgui_window_size();
-        ImGui::Image((void*)intptr_t(texture_render_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
-        ImGui::End();
+        //if (first_loop) {
+        //    first_loop = false;
+        //    ImGui::SetNextWindowDockID(dockspace_id);
+        //}
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
+        //ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
+        //ImGui::Begin("scene", nullptr, ImGuiWindowFlags_None | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        //ImGui::PopStyleVar(5);  // Apply style
+        //scene_size = luma::imgui_window_size();
+        //ImGui::Image((void*)intptr_t(texture_render_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
+        //ImGui::End();
 
         ImGui::Render();
 
@@ -323,7 +343,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         window.swap();
         window.poll();
-
     }
 
     // Dear ImGui cleanup
