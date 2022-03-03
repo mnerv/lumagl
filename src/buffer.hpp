@@ -59,12 +59,15 @@ class render {
     render(int32_t const& width, int32_t const& height);
     ~render();
 
+    auto resize(int32_t const& width, int32_t const& height) -> void;
     auto get_id() const -> int32_t { return m_id; }
     auto bind() const -> void;
     auto unbind() const -> void;
 
   private:
     uint32_t m_id;
+    int32_t m_width;
+    int32_t m_height;
 };
 
 }}

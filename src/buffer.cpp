@@ -55,10 +55,11 @@ auto frame::unbind() const -> void {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-render::render(int32_t const& width, int32_t const& height) {
+render::render(int32_t const& width, int32_t const& height)
+    : m_width(width), m_height(height) {
     glGenRenderbuffers(1, &m_id);
     glBindRenderbuffer(GL_RENDERBUFFER, m_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_id);
@@ -71,11 +72,28 @@ render::~render() {
     glDeleteRenderbuffers(1, &m_id);
 }
 
+auto render::resize(int32_t const& width, int32_t const& height) -> void {
+    if (!(width != m_width || height != m_height)) return;
+    glDeleteRenderbuffers(1, &m_id);
+
+    glGenRenderbuffers(1, &m_id);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_id);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_id);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    //    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 auto render::bind() const -> void {
     glBindRenderbuffer(GL_RENDERBUFFER, m_id);
 }
 
 auto render::unbind() const -> void {
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 }}

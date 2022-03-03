@@ -24,9 +24,13 @@ class camera {
            float const& far = default_far);
     virtual ~camera() = default;
 
-    virtual auto update(window const& win) -> void = 0;
+    virtual auto update() -> void = 0;
 
   public:
+    auto set_screen(int32_t const& width, int32_t const& height) -> void {
+        m_width  = float(width);
+        m_height = float(height);
+    }
     auto set_view(glm::mat4 const& view) -> void { m_view = view; }
     auto set_target(glm::vec3 const& target) -> void { m_target = target; }
     auto set_near(float const& near) -> void { m_near = near; }
@@ -56,6 +60,9 @@ class camera {
 
     float m_near;
     float m_far;
+
+    float m_width;
+    float m_height;
 };
 
 class perspective_camera : virtual public camera {
@@ -64,8 +71,7 @@ class perspective_camera : virtual public camera {
                        glm::vec3 const& position = default_position,
                        glm::vec3 const& front = default_front,
                        glm::vec3 const& up    = default_up);
-
-    auto update(window const& win) -> void override;
+    virtual auto update() -> void override;
   private:
     [[maybe_unused]]float m_fov;
 };

@@ -140,20 +140,29 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glEnableVertexAttribArray(2);
     shader.bind();
 
-    luma::texture texture{{"/Users/k/Downloads/marin.png"}};
     shader.uniform1i("u_texture1", 0);
+    luma::texture texture{"/Users/k/Downloads/marin.png"};
+
     luma::shader shader_1{vertex_shader_1, fragment_shader};
-    auto framebuffer  = luma::make_ref<luma::buffer::frame>();
-    uint32_t texture_color_buffer;
-    glGenTextures(1, &texture_color_buffer);
-    glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
+    auto framebuffer = luma::make_ref<luma::buffer::frame>();
+    uint32_t texture_render_buffer;
+    glGenTextures(1, &texture_render_buffer);
+    glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window.width(), window.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_color_buffer, 0);
-    auto renderbuffer = luma::make_ref<luma::buffer::render>(window.width(), window.height());
-    renderbuffer->unbind();
+    // attach it to currently bound framebuffer object
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_render_buffer, 0);
+    uint32_t render_buffer;
+    glGenRenderbuffers(1, &render_buffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, render_buffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, window.width(), window.height());
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_buffer);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     luma::perspective_camera camera{};
     camera.move({0.f, 0.f, -10.f});
@@ -168,7 +177,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto up_key        = window.make_key(GLFW_KEY_W);
     auto down_key      = window.make_key(GLFW_KEY_S);
     auto plus_alt      = window.make_key(GLFW_KEY_F);
-    auto neg_alt       = window.make_key(GLFW_KEY_G);
+    auto neg_alt       = window.make_key(GLFW_KEY_V);
     auto speed_boost   = window.make_key(GLFW_KEY_LEFT_SHIFT);
 
     double time[2]{glfwGetTime(), 0};
@@ -180,6 +189,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     float sensitivity = 0.1f;
     float yaw = 0.f, pitch = 0.f;
     float boost = 1.0f;
+    bool first_loop = true;
+
+    glm::vec2 scene_size{window.width(), window.height()};
 
     auto is_running = true;
     while(is_running) {
@@ -219,7 +231,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         }
 
         if (luma::state::is_press(speed_boost)) {
-            boost = 3.f;
+            boost = 4.f;
         } else {
             boost = 1.f;
         }
@@ -236,16 +248,36 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             direction.y = std::sin(glm::radians(pitch));
             camera.set_front(glm::normalize(direction));
         }
-        camera.update(window);
+
+        framebuffer->bind();
+        glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, int32_t(scene_size.x), int32_t(scene_size.y), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_render_buffer, 0);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, render_buffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, int32_t(scene_size.x), int32_t(scene_size.y));
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_buffer);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        camera.set_screen(scene_size.x, scene_size.y);
+        camera.update();
 
         // FIRST PASS
         framebuffer->bind();
-        glClearColor(0.f, 0.f, 0.f, 1.0);
+        glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        texture.bind(0);
         shader.bind();
+        shader.uniform1i("u_texture1", 0);
+        texture.bind(0);
         shader.uniform_m4("u_model", glm::value_ptr(model));
         shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
         shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
@@ -256,20 +288,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
         framebuffer->unbind();
 
-        // SECOND PASS
-
-
-        //glClearColor(0.f, 0.f, 0.f, 1.0);
-        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glEnable(GL_DEPTH_TEST);
-
-        //shader_1.bind();
-        //glDisable(GL_DEPTH_TEST);
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, texture_color_buffer);
-        //shader_1.uniform1i("u_texture1", 0);
-        //glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
-
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -277,27 +295,19 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-        ImGui::SetNextWindowDockID(dockspace_id);
+        if (first_loop) {
+            first_loop = false;
+            ImGui::SetNextWindowDockID(dockspace_id);
+        }
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
         ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
-        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_NoMove);
-        ImGui::PopStyleVar(5);  // Apply style
-        auto scene_size = luma::imgui_window_size();
-        ImGui::Image((void*)intptr_t(texture_color_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
-        ImGui::End();
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));  // Add style
-        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
-        ImGui::Begin("#", nullptr, ImGuiWindowFlags_None);
+        ImGui::Begin("scene", nullptr, ImGuiWindowFlags_None | ImGuiWindowFlags_NoBringToFrontOnFocus);
         ImGui::PopStyleVar(5);  // Apply style
         scene_size = luma::imgui_window_size();
-        ImGui::Image((void*)intptr_t(texture_color_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
+        ImGui::Image((void*)intptr_t(texture_render_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
         ImGui::End();
 
         ImGui::Render();
@@ -313,12 +323,16 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         window.swap();
         window.poll();
+
     }
 
     // Dear ImGui cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    glDeleteTextures(1, &texture_render_buffer);
+    glDeleteRenderbuffers(1, &render_buffer);
 
     return 0;
 }

@@ -16,15 +16,6 @@ image::image(int32_t const& width, int32_t const& height, int32_t const& channel
     : m_width(width), m_height(height), m_channels(channels), m_is_loaded(false) {
     m_buffer = new uint8_t[m_width * m_height * m_channels];
 }
-image::image(image const& img) {
-    m_filename  = img.m_filename;
-    m_width     = img.m_width;
-    m_height    = img.m_height;
-    m_channels  = img.m_channels;
-    m_buffer    = new uint8_t[m_width * m_height * m_channels];
-    m_is_loaded = false;
-    std::memcpy(m_buffer, img.m_buffer, m_width * m_height * m_channels);
-}
 
 image::~image() {
     if (m_is_loaded) stbi_image_free(m_buffer);

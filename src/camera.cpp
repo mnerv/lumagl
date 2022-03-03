@@ -30,8 +30,8 @@ perspective_camera::perspective_camera(float const& fov, glm::vec3 const& positi
                                        glm::vec3 const& front, glm::vec3 const& up)
     : camera(position, front, up), m_fov(fov) {}
 
-auto perspective_camera::update(window const& win) -> void {
-    m_projection = glm::perspective(m_fov, float(win.width()) / float(win.height()), m_near, m_far);
+auto perspective_camera::update() -> void {
+    m_projection = glm::perspective(m_fov, m_width / m_height, m_near, m_far);
 }
 
 }
