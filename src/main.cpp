@@ -112,7 +112,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    auto plane = luma::mesh::plane();
+    auto plane = luma::mesh::plane(100);
     luma::buffer::array vertex_array{};
     luma::buffer::vertex vertex{plane->vertices()};
     luma::buffer::index index{plane->indices()};
@@ -130,14 +130,14 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     shader.bind();
 
     shader.uniform1i("u_texture1", 0);
-    luma::texture texture{"/Users/k/Downloads/marin.png"};
+    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
 
     int32_t width, height;
     glfwGetFramebufferSize(window.get_native(), &width, &height);
     int32_t w_width, w_height;
     glfwGetWindowSize(window.get_native(), &w_width, &w_height);
 
-    luma::shader shader_1{vertex_shader_1, fragment_shader};
+    luma::shader shader_1{vertex_shader_1, fragment_shader_1};
     auto framebuffer = luma::make_ref<luma::buffer::frame>();
     uint32_t texture_render_buffer;
     glGenTextures(1, &texture_render_buffer);
@@ -159,7 +159,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     luma::perspective_camera camera{};
-    camera.move({0.f, 0.f, -10.f});
+    camera.move({0.f, 0.f, 2.f});
+    camera.set_front({0.f, 0.f, -2.f});
 
     glm::mat4 model{1.f};
 
@@ -187,7 +188,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     //bool first_loop = true;
 
     glm::vec2 scene_size{window.width(), window.height()};
-
+    //constexpr auto filename_size = 512;
+    //auto filename = new char[filename_size];
+    //std::memset(filename, 0, filename_size);
 
     auto is_running = true;
     while(is_running) {
@@ -249,9 +252,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             if (pitch > 90.f - 1.f) pitch = 89.f;
             if (pitch < -90.f + 1.f) pitch = -89.f;
             glm::vec3 direction{};
-            direction.x = std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
-            direction.z = std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
+            direction.x = -std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
             direction.y = std::sin(glm::radians(pitch));
+            direction.z = -std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
             camera.set_front(glm::normalize(direction));
         }
 
@@ -270,43 +273,50 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        framebuffer->unbind();
 
-        camera.set_screen(scene_size.x, scene_size.y);
+        camera.set_screen(width, height);
         camera.update();
 
         // FIRST PASS
-        framebuffer->bind();
+        //framebuffer->bind();
         glViewport(0, 0, width, height);
-        glClearColor(1.f, 0.f, 0.f, 1.0f);
+        glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
 
         shader.bind();
         shader.uniform1i("u_texture1", 0);
-        texture.bind(0);
+        texture->bind(0);
         shader.uniform_m4("u_model", glm::value_ptr(model));
         shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
         shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
 
         vertex.bind();
         vertex_array.bind();
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
-        framebuffer->unbind();
+        //glPointSize(25.f);
+        //glDrawArrays(GL_POINTS, 0, vertex.count());
+        //glPointSize(1.f);
+        //framebuffer->unbind();
 
-        glViewport(0, 0, width, height);
-        glClearColor(0.f, 0.f, 0.f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glDisable(GL_DEPTH_TEST);
+        //// SECOND PASS
+        //glViewport(0, 0, width, height);
+        //glClearColor(0.f, 0.f, 0.f, 1.0f);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glDisable(GL_DEPTH_TEST);
+        //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-        shader_1.bind();
-        shader_1.uniform1i("u_texture1", 0);
-        vertex.bind();
-        vertex_array.bind();
-        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
+        //shader_1.bind();
+        //shader_1.uniform1i("u_texture1", 0);
+        //vertex.bind();
+        //vertex_array.bind();
+        //glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -328,6 +338,13 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         //ImGui::PopStyleVar(5);  // Apply style
         //scene_size = luma::imgui_window_size();
         //ImGui::Image((void*)intptr_t(texture_render_buffer), ImVec2{scene_size.x, scene_size.y}, ImVec2{0, 1}, ImVec2{1, 0});
+        //ImGui::End();
+
+        //ImGui::Begin("property", nullptr, ImGuiWindowFlags_None);
+        //if (ImGui::InputText("texture file", filename, filename_size, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        //    std::cout << filename << '\n';
+        //    texture = luma::make_ref<luma::texture>(filename);
+        //}
         //ImGui::End();
 
         ImGui::Render();

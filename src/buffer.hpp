@@ -16,10 +16,11 @@ namespace buffer {
 
 class vertex {
   public:
-    vertex(void const* vertices, uint32_t const& size);
+    vertex(float const* vertices, uint32_t const& size);
     vertex(std::vector<mesh::vertex> const& vertices);
     ~vertex();
 
+    auto count() const -> uint32_t { return m_count; };
     auto bind() const -> void;
 
   private:
@@ -27,6 +28,7 @@ class vertex {
 
   private:
     uint32_t m_id;
+    uint32_t m_count;
 };
 
 class array {

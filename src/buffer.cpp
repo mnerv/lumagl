@@ -5,11 +5,13 @@
 namespace luma {
 namespace buffer {
 
-vertex::vertex(void const* vertices, uint32_t const& size) {
+vertex::vertex(float const* vertices, uint32_t const& size) {
     m_id = create_buffer();
+    m_count = size / sizeof(float);
     glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 }
 vertex::vertex(std::vector<mesh::vertex> const& vertices) {
+    m_count = vertices.size();
     m_id = create_buffer();
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(luma::mesh::vertex), vertices.data(), GL_STATIC_DRAW);
 }
