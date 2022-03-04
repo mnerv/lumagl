@@ -92,6 +92,38 @@ void main() {
 }
 )";
 
+auto screen_vertex_shader = R"(#version 410 core
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec4 a_color;
+layout (location = 2) in vec2 a_uv;
+
+out vec4 io_color;
+out vec2 io_uv;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
+void main() {
+    io_color = a_color;
+    io_uv    = a_uv;
+    gl_Position = vec4(a_position, 1.0f);
+}
+)";
+
+auto screen_fragment_shader = R"(#version 410 core
+layout(location = 0) out vec4 color;
+
+in vec4 io_color;
+in vec2 io_uv;
+
+uniform sampler2D u_texture;
+
+void main() {
+    color = texture(u_texture, io_uv);
+}
+)";
+
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     //window.position(luma::DONT_CARE, -800);
@@ -112,7 +144,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    auto plane = luma::mesh::plane(8);
+    // TODO: Abstract away the vertex attrib pointer, because it creates user error when trying to draw multiple objects
+
+    auto plane = luma::mesh::plane(512);
     luma::buffer::array vertex_array{};
     luma::buffer::vertex vertex{plane->vertices()};
     luma::buffer::index index{plane->indices()};
@@ -128,6 +162,21 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, uv));
     glEnableVertexAttribArray(2);
     shader.bind();
+
+    auto screen = luma::mesh::plane();
+    luma::buffer::array screen_array{};
+    luma::buffer::vertex screen_vertex{screen->vertices()};
+    luma::buffer::index screen_index{screen->indices()};
+    luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, color));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, uv));
+    glEnableVertexAttribArray(2);
+    screen_shader.bind();
 
     shader.uniform1i("u_texture1", 0);
     auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
@@ -279,7 +328,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         camera.update();
 
         // FIRST PASS
-        //framebuffer->bind();
+        framebuffer->bind();
         glViewport(0, 0, width, height);
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -301,22 +350,22 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         //glPointSize(25.f);
         //glDrawArrays(GL_POINTS, 0, vertex.count());
         //glPointSize(1.f);
-        //framebuffer->unbind();
+        framebuffer->unbind();
 
-        //// SECOND PASS
-        //glViewport(0, 0, width, height);
-        //glClearColor(0.f, 0.f, 0.f, 1.0f);
-        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glDisable(GL_DEPTH_TEST);
-        //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL);
+        // SECOND PASS
+        glViewport(0, 0, width, height);
+        glClearColor(0.f, 0.f, 0.f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-        //shader_1.bind();
-        //shader_1.uniform1i("u_texture1", 0);
-        //vertex.bind();
-        //vertex_array.bind();
-        //glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
+        screen_shader.bind();
+        screen_shader.uniform1i("u_texture", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
+        screen_array.bind();
+        screen_vertex.bind();
+        glDrawElements(GL_TRIANGLES, screen_index.count(), GL_UNSIGNED_INT, 0);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
