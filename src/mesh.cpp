@@ -14,10 +14,16 @@ auto surface::set_indices(std::vector<uint32_t> const& indices) -> void {
 }
 
 // https://www.danielsieger.com/blog/2021/05/03/generating-primitive-shapes.html
-auto surface::add_triangle(uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void {
-    m_indices.push_back(v0);
-    m_indices.push_back(v1);
-    m_indices.push_back(v2);
+auto surface::add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void {
+    if (offset + 2 < m_indices.size()) {
+        m_indices[offset + 0] = v0;
+        m_indices[offset + 1] = v1;
+        m_indices[offset + 2] = v2;
+    } else {
+        m_indices.push_back(v0);
+        m_indices.push_back(v1);
+        m_indices.push_back(v2);
+    }
 }
 
 auto surface::add_vertex(glm::vec3 const& point, glm::vec4 const& color, glm::vec2 const& uv) -> uint32_t {
@@ -41,25 +47,17 @@ auto plane(int32_t const& resolution) -> ref<surface> {
         point[1] += 2.0 / resolution;
     }
 
-    std::vector<uint32_t> triangles{};
-    triangles.resize(resolution * resolution * 6);
-    uint32_t vert = 0;
-    uint32_t tris = 0;
+    uint32_t vertex_id = 0;
+    uint32_t offset = 0;
     for (auto i = 0; i < resolution; i++) {
         for (auto j = 0; j < resolution; j++) {
-            triangles[tris + 0] = vert + 0;
-            triangles[tris + 1] = vert + resolution + 1;
-            triangles[tris + 2] = vert + 1;
-            triangles[tris + 3] = vert + 1;
-            triangles[tris + 4] = vert + resolution + 1;
-            triangles[tris + 5] = vert + resolution + 2;
-
-            vert++;
-            tris += 6;;
+            mesh->add_triangle(offset, vertex_id + 0, vertex_id + resolution + 1, vertex_id + 1);
+            mesh->add_triangle(offset + 3, vertex_id + 1, vertex_id + resolution + 1, vertex_id + resolution + 2);
+            vertex_id++;
+            offset += 6;
         }
-        vert++;
+        vertex_id++;
     }
-    mesh->set_indices(triangles);
     return mesh;
 }
 

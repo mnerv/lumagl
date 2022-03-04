@@ -24,7 +24,7 @@ class surface {
     ~surface() = default;
 
     auto set_indices(std::vector<uint32_t> const& indices) -> void;
-    auto add_triangle(uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void;
+    auto add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void;
     auto add_vertex(glm::vec3 const& point,
                     glm::vec4 const& color = {0.f, 0.f, 0.f, 1.f},
                     glm::vec2 const& uv = {0.f, 0.f}) -> uint32_t;

@@ -112,7 +112,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    auto plane = luma::mesh::plane(100);
+    auto plane = luma::mesh::plane(8);
     luma::buffer::array vertex_array{};
     luma::buffer::vertex vertex{plane->vertices()};
     luma::buffer::index index{plane->indices()};
