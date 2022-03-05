@@ -25,11 +25,13 @@ class surface {
 
     auto set_indices(std::vector<uint32_t> const& indices) -> void;
     auto add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void;
-    auto add_vertex(glm::vec3 const& point,
-                    glm::vec4 const& color = {0.f, 0.f, 0.f, 1.f},
+    auto add_vertex(glm::vec3 const& point, glm::vec4 const& color = {0.f, 0.f, 0.f, 1.f},
                     glm::vec2 const& uv = {0.f, 0.f}) -> uint32_t;
     auto vertices() const -> std::vector<vertex> const& { return m_vertices; }
     auto indices() const -> std::vector<uint32_t> const& { return m_indices; }
+
+    auto vertex_count() const -> int32_t { return m_vertices.size(); }
+    auto index_count() const -> int32_t { return m_indices.size(); }
 
   private:
     std::vector<vertex> m_vertices;

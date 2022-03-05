@@ -5,13 +5,31 @@
 namespace luma {
 namespace buffer {
 
-vertex::vertex(float const* vertices, uint32_t const& size) {
+layout::layout(std::vector<element> const& elements) : m_elements(elements) {
+    m_stride = calculate_stride();
+    calculate_offset();
+}
+
+auto layout::calculate_stride() -> std::size_t {
+    std::size_t strides = 0;
+    for (auto const& e : m_elements)
+        strides += element::shader_type_size(e.type);
+    return strides;
+}
+
+auto layout::calculate_offset() -> void {
+    uint32_t offset = 0;
+    for (std::size_t i = 0; i < m_elements.size(); i++) {
+        m_elements[i].offset = offset;
+        offset += element::shader_type_size(m_elements[i].type);
+    }
+}
+
+vertex::vertex(void const* vertices, uint32_t const& size) : m_layout({}){
     m_id = create_buffer();
-    m_count = size / sizeof(float);
     glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 }
-vertex::vertex(std::vector<mesh::vertex> const& vertices) {
-    m_count = vertices.size();
+vertex::vertex(std::vector<mesh::vertex> const& vertices) : m_layout({}) {
     m_id = create_buffer();
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(luma::mesh::vertex), vertices.data(), GL_STATIC_DRAW);
 }
@@ -29,15 +47,8 @@ auto vertex::create_buffer() const -> uint32_t {
     return id;
 }
 
-array::array() {
-    glGenVertexArrays(1, &m_id);
-    glBindVertexArray(m_id);
-}
-array::~array() {
-    glDeleteVertexArrays(1, &m_id);
-}
-auto array::bind() const -> void {
-    glBindVertexArray(m_id);
+auto vertex::create(void const* vertices, uint32_t const& size) -> ref<vertex> {
+    return make_ref<vertex>(vertices, size);
 }
 
 index::index(uint32_t const* indices, uint32_t const& count) : m_count(count) {
@@ -55,6 +66,10 @@ index::~index() {
 }
 auto index::bind() const -> void {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
+}
+
+auto index::create(uint32_t const* indices, uint32_t const& count) -> ref<index> {
+    return make_ref<index>(indices, count);
 }
 
 auto index::create_buffer() -> uint32_t {
@@ -79,45 +94,52 @@ auto frame::unbind() const -> void {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-render::render(int32_t const& width, int32_t const& height)
-    : m_width(width), m_height(height) {
-    glGenRenderbuffers(1, &m_id);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_id);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    //    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+array::array() {
+    glGenVertexArrays(1, &m_id);
+    glBindVertexArray(m_id);
 }
-render::~render() {
-    glDeleteRenderbuffers(1, &m_id);
+array::~array() {
+    glDeleteVertexArrays(1, &m_id);
+}
+auto array::bind() const -> void {
+    glBindVertexArray(m_id);
+}
+auto array::create() -> ref<array> {
+    return make_ref<array>();
 }
 
-auto render::resize(int32_t const& width, int32_t const& height) -> void {
-    if (!(width != m_width || height != m_height)) return;
-    glDeleteRenderbuffers(1, &m_id);
+auto array::add_vertex_buffer(ref<vertex> const& vertex_buffer) -> void {
+    glBindVertexArray(m_id);
+    vertex_buffer->bind();
+    auto const& layout = vertex_buffer->get_layout();
+    auto stride = layout.get_stride();
 
-    glGenRenderbuffers(1, &m_id);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    std::for_each(std::begin(layout), std::end(layout), [&](element const& e) {
+        auto size   = element::component_count(e.type);
+        auto offset = e.offset;
+        switch(e.type) {
+            case shader::type::f32:
+            case shader::type::vec2:
+            case shader::type::vec3:
+            case shader::type::vec4:
+            case shader::type::mat2:
+            case shader::type::mat3:
+            case shader::type::mat4:
+                glVertexAttribPointer(m_vertex_buffer_index, size, GL_FLOAT, e.normalised ? GL_TRUE : GL_FALSE, stride, (void const*)(intptr_t)offset);
+                glEnableVertexAttribArray(m_vertex_buffer_index);
+                m_vertex_buffer_index++;
+                break;
+            default: break;
+        }
+    });
 
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_id);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    //    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    m_vertex_buffers.push_back(vertex_buffer);
 }
 
-auto render::bind() const -> void {
-    glBindRenderbuffer(GL_RENDERBUFFER, m_id);
-}
-
-auto render::unbind() const -> void {
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+auto array::set_index_buffer(ref<index> const& index_buffer) -> void {
+    glBindVertexArray(m_id);
+    m_index_buffer = index_buffer;
+    m_index_buffer->bind();
 }
 
 }}

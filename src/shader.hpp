@@ -10,6 +10,26 @@ namespace luma {
 
 class shader {
   public:
+    enum class type : uint32_t {
+        none = 0,
+        // basic types
+        //boolean,
+
+        i8,  u8,
+        i16, u16,
+        i32, u32, p32, // packed 32-bit integer 16.16 integer
+        f16, f32, f64,
+
+        // vector types (f32, i32, f64)
+        vec2, vec3, vec4,
+        ivec2, ivec3, ivec4,
+        dvec2, dvec3, dvec4,
+
+        // matrix types (f32)
+        mat2, mat3, mat4,
+    };
+
+  public:
     shader(std::string const& vertex, std::string const& fragment);
     ~shader();
 

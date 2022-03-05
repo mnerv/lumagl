@@ -14,6 +14,7 @@ auto surface::set_indices(std::vector<uint32_t> const& indices) -> void {
 }
 
 // https://www.danielsieger.com/blog/2021/05/03/generating-primitive-shapes.html
+// https://en.wikipedia.org/wiki/Polygon_mesh
 auto surface::add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void {
     if (offset + 2 < m_indices.size()) {
         m_indices[offset + 0] = v0;

@@ -5,16 +5,12 @@
 #include <vector>
 #include <unordered_map>
 
+#include "luma.hpp"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
 namespace luma {
 constexpr int32_t DONT_CARE = INT32_MIN;
-
-// forward declaration
-namespace state {
-struct key;
-}
 
 class window{
   public:

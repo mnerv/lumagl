@@ -97,6 +97,12 @@ layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec4 a_color;
 layout (location = 2) in vec2 a_uv;
 
+// Grid position are in xy clipped space
+vec3 gridPlane[6] = vec3[](
+    vec3( 1,  1, 0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+    vec3(-1, -1, 0), vec3( 1,  1,  0), vec3( 1, -1,  0)
+);
+
 out vec4 io_color;
 out vec2 io_uv;
 
@@ -144,38 +150,33 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    // TODO: Abstract away the vertex attrib pointer, because it creates user error when trying to draw multiple objects
+    luma::buffer::layout vertex_layout{{
+        {luma::shader::type::vec3, "a_position"},
+        {luma::shader::type::vec4, "a_color"},
+        {luma::shader::type::vec2, "a_uv"},
+    }};
+    auto plane = luma::mesh::plane();
+    auto vertices = plane->vertices();
+    auto vertex_array = luma::buffer::array::create();
+    auto vertex_buffer = luma::buffer::vertex::create(vertices.data(), vertices.size() * sizeof(luma::mesh::vertex));
+    vertex_buffer->set_layout(vertex_layout);
+    auto index_buffer = luma::buffer::index::create(plane->indices().data(), plane->indices().size());
+    vertex_array->add_vertex_buffer(vertex_buffer);
+    vertex_array->set_index_buffer(index_buffer);
 
-    auto plane = luma::mesh::plane(512);
-    luma::buffer::array vertex_array{};
-    luma::buffer::vertex vertex{plane->vertices()};
-    luma::buffer::index index{plane->indices()};
     luma::shader shader{vertex_shader, fragment_shader};
-    vertex.bind();
+    vertex_buffer->bind();
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, position));
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, color));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, uv));
-    glEnableVertexAttribArray(2);
-    shader.bind();
-
+    auto screen_va = luma::buffer::array::create();
     auto screen = luma::mesh::plane();
-    luma::buffer::array screen_array{};
-    luma::buffer::vertex screen_vertex{screen->vertices()};
-    luma::buffer::index screen_index{screen->indices()};
+    auto screen_vb = luma::buffer::vertex::create(screen->vertices().data(), vertices.size() * sizeof(luma::mesh::vertex));
+    auto screen_ib = luma::buffer::index::create(screen->indices().data(), screen->indices().size());
+    screen_vb->set_layout(vertex_layout);
+    screen_va->add_vertex_buffer(screen_vb);
+    screen_va->set_index_buffer(screen_ib);
+
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, position));
-    glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, color));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(luma::mesh::vertex), (void*)offsetof(luma::mesh::vertex, uv));
-    glEnableVertexAttribArray(2);
     screen_shader.bind();
 
     shader.uniform1i("u_texture1", 0);
@@ -343,13 +344,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
         shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
 
-        vertex.bind();
-        vertex_array.bind();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glDrawElements(GL_TRIANGLES, index.count(), GL_UNSIGNED_INT, 0);
-        //glPointSize(25.f);
-        //glDrawArrays(GL_POINTS, 0, vertex.count());
-        //glPointSize(1.f);
+        vertex_array->bind();
+        index_buffer->bind();
+        vertex_buffer->bind();
+        glDrawElements(GL_TRIANGLES, index_buffer->count(), GL_UNSIGNED_INT, 0);
         framebuffer->unbind();
 
         // SECOND PASS
@@ -363,9 +361,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         screen_shader.uniform1i("u_texture", 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-        screen_array.bind();
-        screen_vertex.bind();
-        glDrawElements(GL_TRIANGLES, screen_index.count(), GL_UNSIGNED_INT, 0);
+
+        screen_va->bind();
+        screen_vb->bind();
+        screen_ib->bind();
+        glDrawElements(GL_TRIANGLES, screen_ib->count(), GL_UNSIGNED_INT, 0);
 
         // New Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
