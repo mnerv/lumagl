@@ -179,7 +179,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     screen_shader.bind();
 
-    shader.uniform1i("u_texture1", 0);
+    shader.num("u_texture1", 0);
     auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
 
     int32_t width, height;
@@ -338,11 +338,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glCullFace(GL_FRONT);
 
         shader.bind();
-        shader.uniform1i("u_texture1", 0);
+        shader.num("u_texture1", 0);
         texture->bind(0);
-        shader.uniform_m4("u_model", glm::value_ptr(model));
-        shader.uniform_m4("u_view", glm::value_ptr(camera.view()));
-        shader.uniform_m4("u_projection", glm::value_ptr(camera.projection()));
+        shader.mat4("u_model", glm::value_ptr(model));
+        shader.mat4("u_view", glm::value_ptr(camera.view()));
+        shader.mat4("u_projection", glm::value_ptr(camera.projection()));
 
         vertex_array->bind();
         index_buffer->bind();
@@ -358,7 +358,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         screen_shader.bind();
-        screen_shader.uniform1i("u_texture", 0);
+        screen_shader.num("u_texture", 0);
+        screen_shader.mat4("u_model", glm::value_ptr(model));
+        screen_shader.mat4("u_view", glm::value_ptr(camera.view()));
+        screen_shader.mat4("u_projection", glm::value_ptr(camera.projection()));
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
 

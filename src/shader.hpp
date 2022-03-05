@@ -36,12 +36,12 @@ class shader {
     auto bind() -> void;
 
   public:
-    auto uniform1i(std::string const& name, int32_t const& value) -> void;
+    auto num(std::string const& name, int32_t const& value) -> void;
 
-    auto uniform4f(std::string const& name, glm::vec4 const& value) -> void;
-    auto uniform4fv(std::string const& name, float const* value, uint32_t const& count = 1) -> void;
+    auto vec4(std::string const& name, glm::vec4 const& value) -> void;
+    auto vec4(std::string const& name, float const* value, uint32_t const& count = 1) -> void;
 
-    auto uniform_m4(std::string const& name, float const* m4,
+    auto mat4(std::string const& name, float const* m4,
                     uint32_t const& count = 1, bool const& transpose = false) -> void;
 
   private:

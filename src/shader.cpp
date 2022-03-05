@@ -12,20 +12,20 @@ shader::~shader() {
 
 auto shader::bind() -> void { glUseProgram(m_id); }
 
-auto shader::uniform1i(std::string const& name, int32_t const& value) -> void {
+auto shader::num(std::string const& name, int32_t const& value) -> void {
     bind();
     glUniform1i(uniform_location(name), value);
 }
-auto shader::uniform4f(std::string const& name, glm::vec4 const& value) -> void {
+auto shader::vec4(std::string const& name, glm::vec4 const& value) -> void {
     bind();
     glUniform4f(uniform_location(name), value[0], value[1], value[2], value[3]);
 }
-auto shader::uniform4fv(std::string const& name, float const* value, uint32_t const& count) -> void {
+auto shader::vec4(std::string const& name, float const* value, uint32_t const& count) -> void {
     bind();
     glUniform4fv(uniform_location(name), count, value);
 }
 
-auto shader::uniform_m4(std::string const& name, float const* m4,
+auto shader::mat4(std::string const& name, float const* m4,
                 uint32_t const& count, bool const& transpose) -> void {
     bind();
     glUniformMatrix4fv(uniform_location(name), count, (transpose ? GL_TRUE : GL_FALSE), m4);
