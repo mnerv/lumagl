@@ -1,6 +1,7 @@
 #include "mesh.hpp"
 #include <iostream>
 #include <array>
+#include <cmath>
 
 namespace luma {
 namespace mesh {
@@ -25,6 +26,10 @@ auto surface::add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t 
         m_indices.push_back(v1);
         m_indices.push_back(v2);
     }
+}
+
+auto surface::add_quad(uint32_t const& v0, uint32_t const& v1, uint32_t const& v2, uint32_t const& v3) -> void {
+    m_faces.push_back({v0, v1, v2, v3});
 }
 
 auto surface::add_vertex(glm::vec3 const& point, glm::vec4 const& color, glm::vec2 const& uv) -> uint32_t {
@@ -62,12 +67,59 @@ auto plane(int32_t const& resolution) -> ref<surface> {
     return mesh;
 }
 
-auto cube([[maybe_unused]]float const& resolution) -> ref<surface> {
-    std::vector<glm::vec3> positions;
-    for (auto i = 0; i < 4; i++) {
-        positions.push_back({-1, -1, 0});
-    }
-    return nullptr;
+auto cube() -> ref<surface> {
+    auto mesh = make_ref<surface>();
+    std::vector<vertex> vertices{
+        {{-1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {0.0f, 0.0f}},
+        {{-1.0f, -1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f}},
+        {{ 1.0f, -1.0f,  1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 1.0f}},
+        {{ 1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 0.0f}},
+
+        {{-1.0f,  1.0f, -1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {0.0f, 0.0f}},
+        {{-1.0f,  1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f}},
+        {{ 1.0f,  1.0f,  1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {1.0f, 1.0f}},
+        {{ 1.0f,  1.0f, -1.0f},  {1.0f, 1.0f, 0.0f, 1.0f},  {1.0f, 0.0f}},
+    };
+
+    auto v0 = mesh->add_vertex({-1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {0.0f, 0.0f});
+    auto v1 = mesh->add_vertex({-1.0f, -1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
+    auto v2 = mesh->add_vertex({ 1.0f, -1.0f,  1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 1.0f});
+    auto v3 = mesh->add_vertex({ 1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 0.0f});
+
+    auto v4 = mesh->add_vertex({-1.0f,  1.0f, -1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {0.0f, 0.0f});
+    auto v5 = mesh->add_vertex({-1.0f,  1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
+    auto v6 = mesh->add_vertex({ 1.0f,  1.0f,  1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {1.0f, 1.0f});
+    auto v7 = mesh->add_vertex({ 1.0f,  1.0f, -1.0f},  {1.0f, 1.0f, 0.0f, 1.0f},  {1.0f, 0.0f});
+
+    mesh->add_quad(v0, v1, v2, v3);
+    mesh->add_quad(v4, v5, v6, v7);
+
+    mesh->add_quad(v2, v3, v2, v3);
+    mesh->add_quad(v4, v5, v6, v7);
+
+    mesh->add_quad(v0, v1, v2, v3);
+    mesh->add_quad(v4, v5, v6, v7);
+
+    //std::vector<uint32_t> indices{
+    //    0, 2, 3,
+    //    0, 1, 2,
+
+    //    6, 5, 4,
+    //    6, 4, 7,
+
+    //    7, 3, 2,
+    //    2, 6, 7,
+
+    //    4, 1, 0,
+    //    1, 4, 5,
+
+    //    5, 2, 1,
+    //    2, 5, 6,
+
+    //    7, 4, 0,
+    //    0, 3, 7,
+    //};
+    return mesh;
 }
 
 }

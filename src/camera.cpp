@@ -1,5 +1,6 @@
 #include "camera.hpp"
 #include "window.hpp"
+#include <iostream>
 
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -32,6 +33,14 @@ perspective_camera::perspective_camera(float const& fov, glm::vec3 const& positi
 
 auto perspective_camera::update() -> void {
     m_projection = glm::perspective(m_fov, m_width / m_height, m_near, m_far);
+
+    auto pos = glm::vec2{0.f, .5f};
+    auto inv = glm::inverse(m_projection * m_view);
+
+    auto near_point = inv * glm::vec4{pos.x, pos.y, 0.f, 1.f};
+    auto far_point  = inv * glm::vec4{pos.x, pos.y, 1.f, 1.f};
+
+    std::cout << near_point.z << ", " << far_point.z << '\n';
 }
 
 }

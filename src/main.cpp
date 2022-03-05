@@ -30,15 +30,30 @@ layout (location = 2) in vec2 a_uv;
 
 out vec4 io_color;
 out vec2 io_uv;
+out vec3 near_point;
+out vec3 far_point;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
+vec3 unproject_point(float x, float y, float z, mat4 view, mat4 projection) {
+    mat4 inv = inverse(projection * view);
+    vec4 unprojected_point = inv * vec4(x, y, z, 1.f);
+    return unprojected_point.xyz / unprojected_point.w;
+}
+
 void main() {
     io_color = a_color;
     io_uv    = a_uv;
+
+    vec3 p = a_position;
+
+    near_point = unproject_point(a_position.x, a_position.y, 0.f, u_view, u_projection).xyz;
+    far_point  = unproject_point(a_position.x, a_position.y, 1.f, u_view, u_projection).xyz;
+
     gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
+    //gl_Position = vec4(a_position, 1.0f);
 }
 )";
 
@@ -47,48 +62,18 @@ layout(location = 0) out vec4 color;
 
 in vec4 io_color;
 in vec2 io_uv;
+in vec3 near_point;
+in vec3 far_point;
 
 uniform sampler2D u_texture1;
 uniform sampler2D u_texture2;
 
 void main() {
+    //color = io_color;
+    //color = mix(texture(u_texture1, io_uv), texture(u_texture2, io_uv), 0.5f);
+    //float t = - near_point.y / (far_point.y - near_point.y);
+    //color = vec4(1.f, 0.f, 0.f, 1.f);
     color = io_color;
-    color = mix(texture(u_texture1, io_uv), texture(u_texture2, io_uv), 0.5f);
-    color = texture(u_texture1, io_uv);
-}
-)";
-
-auto vertex_shader_1 = R"(#version 410 core
-layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec4 a_color;
-layout (location = 2) in vec2 a_uv;
-
-out vec4 io_color;
-out vec2 io_uv;
-
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_projection;
-
-void main() {
-    io_color = a_color;
-    io_uv    = a_uv;
-    //gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
-    gl_Position = vec4(a_position * 2.f, 1.0f);
-}
-)";
-
-auto fragment_shader_1 = R"(#version 410 core
-layout(location = 0) out vec4 color;
-
-in vec4 io_color;
-in vec2 io_uv;
-
-uniform sampler2D u_texture1;
-uniform sampler2D u_texture2;
-
-void main() {
-    color = texture(u_texture1, io_uv);
 }
 )";
 
@@ -96,12 +81,6 @@ auto screen_vertex_shader = R"(#version 410 core
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec4 a_color;
 layout (location = 2) in vec2 a_uv;
-
-// Grid position are in xy clipped space
-vec3 gridPlane[6] = vec3[](
-    vec3( 1,  1, 0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-    vec3(-1, -1, 0), vec3( 1,  1,  0), vec3( 1, -1,  0)
-);
 
 out vec4 io_color;
 out vec2 io_uv;
@@ -130,6 +109,40 @@ void main() {
 }
 )";
 
+float cube_vertices[] = {
+    // bottom
+    -1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
+    -1.0f, -1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
+     1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
+     1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
+
+    // top
+    -1.0f,  1.0f, -1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f, 0.0f,
+    -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
+     1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+     1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+};
+
+uint32_t cube_indices[] = {
+    0, 2, 3,
+    0, 1, 2,
+
+    6, 5, 4,
+    6, 4, 7,
+
+    7, 3, 2,
+    2, 6, 7,
+
+    4, 1, 0,
+    1, 4, 5,
+
+    5, 2, 1,
+    2, 5, 6,
+
+    7, 4, 0,
+    0, 3, 7,
+};
+
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     //window.position(luma::DONT_CARE, -800);
@@ -155,10 +168,18 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         {luma::shader::type::vec4, "a_color"},
         {luma::shader::type::vec2, "a_uv"},
     }};
+
+    auto cube_mesh = luma::mesh::cube();
+    auto cube_va = luma::buffer::array::create();
+    auto cube_vb = luma::buffer::vertex::create(cube_mesh->vertices().data(), cube_mesh->vertex_size());
+    cube_vb->set_layout(vertex_layout);
+    auto cube_ib = luma::buffer::index::create(cube_mesh->indices().data(), cube_mesh->index_count());
+    cube_va->add_vertex_buffer(cube_vb);
+    cube_va->set_index_buffer(cube_ib);
+
     auto plane = luma::mesh::plane();
-    auto vertices = plane->vertices();
     auto vertex_array = luma::buffer::array::create();
-    auto vertex_buffer = luma::buffer::vertex::create(vertices.data(), vertices.size() * sizeof(luma::mesh::vertex));
+    auto vertex_buffer = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
     vertex_buffer->set_layout(vertex_layout);
     auto index_buffer = luma::buffer::index::create(plane->indices().data(), plane->indices().size());
     vertex_array->add_vertex_buffer(vertex_buffer);
@@ -169,7 +190,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     auto screen_va = luma::buffer::array::create();
     auto screen = luma::mesh::plane();
-    auto screen_vb = luma::buffer::vertex::create(screen->vertices().data(), vertices.size() * sizeof(luma::mesh::vertex));
+    auto screen_vb = luma::buffer::vertex::create(screen->vertices().data(), screen->vertex_count() * sizeof(luma::mesh::vertex));
     auto screen_ib = luma::buffer::index::create(screen->indices().data(), screen->indices().size());
     screen_vb->set_layout(vertex_layout);
     screen_va->add_vertex_buffer(screen_vb);
@@ -187,7 +208,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     int32_t w_width, w_height;
     glfwGetWindowSize(window.get_native(), &w_width, &w_height);
 
-    luma::shader shader_1{vertex_shader_1, fragment_shader_1};
     auto framebuffer = luma::make_ref<luma::buffer::frame>();
     uint32_t texture_render_buffer;
     glGenTextures(1, &texture_render_buffer);
@@ -210,7 +230,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     luma::perspective_camera camera{};
     camera.move({0.f, 0.f, 2.f});
-    camera.set_front({0.f, 0.f, -2.f});
+    camera.set_front({0.f, 0.f, -1.f});
 
     glm::mat4 model{1.f};
 
@@ -348,6 +368,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         index_buffer->bind();
         vertex_buffer->bind();
         glDrawElements(GL_TRIANGLES, index_buffer->count(), GL_UNSIGNED_INT, 0);
+
+        cube_va->bind();
+        cube_vb->bind();
+        cube_ib->bind();
+        glDrawElements(GL_TRIANGLES, cube_ib->count(), GL_UNSIGNED_INT, 0);
         framebuffer->unbind();
 
         // SECOND PASS

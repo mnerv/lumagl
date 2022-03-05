@@ -12,10 +12,19 @@ shader::~shader() {
 
 auto shader::bind() -> void { glUseProgram(m_id); }
 
+auto shader::num(std::string const& name, uint32_t const& value) -> void {
+    bind();
+    glUniform1ui(uniform_location(name), value);
+}
 auto shader::num(std::string const& name, int32_t const& value) -> void {
     bind();
     glUniform1i(uniform_location(name), value);
 }
+auto shader::num(std::string const& name, float const& value) -> void {
+    bind();
+    glUniform1f(uniform_location(name), value);
+}
+
 auto shader::vec4(std::string const& name, glm::vec4 const& value) -> void {
     bind();
     glUniform4f(uniform_location(name), value[0], value[1], value[2], value[3]);
