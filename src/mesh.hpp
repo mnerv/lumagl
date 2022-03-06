@@ -24,7 +24,7 @@ class surface {
     surface();
     ~surface() = default;
 
-    auto set_vertices(std::vector<vertex> const& vertices) -> void { m_vertices = vertices; }
+    auto set_vertices(std::vector<vertex> const& vertices) -> void;
     auto set_indices(std::vector<uint32_t> const& indices) -> void;
     auto add_triangle(uint32_t const& offset, uint32_t const& v0, uint32_t const& v1, uint32_t const& v2) -> void;
     auto add_quad(uint32_t const& v0, uint32_t const& v1, uint32_t const& v2, uint32_t const& v3) -> void;

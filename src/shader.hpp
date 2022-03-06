@@ -8,13 +8,14 @@
 
 namespace luma {
 
+// https://www.khronos.org/opengl/wiki/OpenGL_Type
+
 class shader {
   public:
     enum class type : uint32_t {
         none = 0,
         // basic types
-        //boolean,
-
+        boole,
         i8,  u8,
         i16, u16,
         i32, u32, p32, // packed 32-bit integer 16.16 integer
@@ -36,9 +37,9 @@ class shader {
     auto bind() -> void;
 
   public:
+    auto num(std::string const& name, uint32_t const& value) -> void;
     auto num(std::string const& name, int32_t const& value) -> void;
     auto num(std::string const& name, float const& value) -> void;
-    auto num(std::string const& name, uint32_t const& value) -> void;
 
     auto vec4(std::string const& name, glm::vec4 const& value) -> void;
     auto vec4(std::string const& name, float const* value, uint32_t const& count = 1) -> void;

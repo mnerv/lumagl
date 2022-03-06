@@ -10,6 +10,9 @@ surface::surface(std::vector<vertex> const& vertices, std::vector<uint32_t> indi
     : m_vertices(vertices), m_indices(indices) {}
 surface::surface() : m_vertices({}), m_indices({}) {}
 
+auto surface::set_vertices(std::vector<vertex> const& vertices) -> void {
+    m_vertices = vertices;
+}
 auto surface::set_indices(std::vector<uint32_t> const& indices) -> void {
     m_indices = indices;
 }
@@ -81,44 +84,46 @@ auto cube() -> ref<surface> {
         {{ 1.0f,  1.0f, -1.0f},  {1.0f, 1.0f, 0.0f, 1.0f},  {1.0f, 0.0f}},
     };
 
-    auto v0 = mesh->add_vertex({-1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {0.0f, 0.0f});
-    auto v1 = mesh->add_vertex({-1.0f, -1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
-    auto v2 = mesh->add_vertex({ 1.0f, -1.0f,  1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 1.0f});
-    auto v3 = mesh->add_vertex({ 1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 0.0f});
+    //auto v0 = mesh->add_vertex({-1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {0.0f, 0.0f});
+    //auto v1 = mesh->add_vertex({-1.0f, -1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
+    //auto v2 = mesh->add_vertex({ 1.0f, -1.0f,  1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 1.0f});
+    //auto v3 = mesh->add_vertex({ 1.0f, -1.0f, -1.0f},  {1.0f, 0.0f, 1.0f, 1.0f},  {1.0f, 0.0f});
 
-    auto v4 = mesh->add_vertex({-1.0f,  1.0f, -1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {0.0f, 0.0f});
-    auto v5 = mesh->add_vertex({-1.0f,  1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
-    auto v6 = mesh->add_vertex({ 1.0f,  1.0f,  1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {1.0f, 1.0f});
-    auto v7 = mesh->add_vertex({ 1.0f,  1.0f, -1.0f},  {1.0f, 1.0f, 0.0f, 1.0f},  {1.0f, 0.0f});
+    //auto v4 = mesh->add_vertex({-1.0f,  1.0f, -1.0f},  {0.0f, 0.0f, 1.0f, 1.0f},  {0.0f, 0.0f});
+    //auto v5 = mesh->add_vertex({-1.0f,  1.0f,  1.0f},  {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 1.0f});
+    //auto v6 = mesh->add_vertex({ 1.0f,  1.0f,  1.0f},  {1.0f, 0.0f, 0.0f, 1.0f},  {1.0f, 1.0f});
+    //auto v7 = mesh->add_vertex({ 1.0f,  1.0f, -1.0f},  {1.0f, 1.0f, 0.0f, 1.0f},  {1.0f, 0.0f});
 
-    mesh->add_quad(v0, v1, v2, v3);
-    mesh->add_quad(v4, v5, v6, v7);
+    //mesh->add_quad(v0, v1, v2, v3);
+    //mesh->add_quad(v4, v5, v6, v7);
 
-    mesh->add_quad(v2, v3, v2, v3);
-    mesh->add_quad(v4, v5, v6, v7);
+    //mesh->add_quad(v2, v3, v2, v3);
+    //mesh->add_quad(v4, v5, v6, v7);
 
-    mesh->add_quad(v0, v1, v2, v3);
-    mesh->add_quad(v4, v5, v6, v7);
+    //mesh->add_quad(v0, v1, v2, v3);
+    //mesh->add_quad(v4, v5, v6, v7);
 
-    //std::vector<uint32_t> indices{
-    //    0, 2, 3,
-    //    0, 1, 2,
+    std::vector<uint32_t> indices{
+        0, 2, 3,
+        0, 1, 2,
 
-    //    6, 5, 4,
-    //    6, 4, 7,
+        6, 5, 4,
+        6, 4, 7,
 
-    //    7, 3, 2,
-    //    2, 6, 7,
+        7, 3, 2,
+        2, 6, 7,
 
-    //    4, 1, 0,
-    //    1, 4, 5,
+        4, 1, 0,
+        1, 4, 5,
 
-    //    5, 2, 1,
-    //    2, 5, 6,
+        5, 2, 1,
+        2, 5, 6,
 
-    //    7, 4, 0,
-    //    0, 3, 7,
-    //};
+        7, 4, 0,
+        0, 3, 7,
+    };
+    mesh->set_vertices(vertices);
+    mesh->set_indices(indices);
     return mesh;
 }
 

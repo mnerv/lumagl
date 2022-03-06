@@ -169,11 +169,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         {luma::shader::type::vec2, "a_uv"},
     }};
 
-    auto cube_mesh = luma::mesh::cube();
+    auto cube = luma::mesh::cube();
     auto cube_va = luma::buffer::array::create();
-    auto cube_vb = luma::buffer::vertex::create(cube_mesh->vertices().data(), cube_mesh->vertex_size());
+    auto cube_vb = luma::buffer::vertex::create(cube->vertices().data(), cube->vertices_size());
     cube_vb->set_layout(vertex_layout);
-    auto cube_ib = luma::buffer::index::create(cube_mesh->indices().data(), cube_mesh->index_count());
+    auto cube_ib = luma::buffer::index::create(cube->indices().data(), cube->index_count());
     cube_va->add_vertex_buffer(cube_vb);
     cube_va->set_index_buffer(cube_ib);
 
@@ -181,7 +181,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto vertex_array = luma::buffer::array::create();
     auto vertex_buffer = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
     vertex_buffer->set_layout(vertex_layout);
-    auto index_buffer = luma::buffer::index::create(plane->indices().data(), plane->indices().size());
+    auto index_buffer = luma::buffer::index::create(plane->indices().data(), plane->index_count());
     vertex_array->add_vertex_buffer(vertex_buffer);
     vertex_array->set_index_buffer(index_buffer);
 
@@ -323,7 +323,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             if (pitch < -90.f + 1.f) pitch = -89.f;
             glm::vec3 direction{};
             direction.x = -std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
-            direction.y = std::sin(glm::radians(pitch));
+            direction.y =  std::sin(glm::radians(pitch));
             direction.z = -std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
             camera.set_front(glm::normalize(direction));
         }
@@ -354,8 +354,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(GL_FRONT);
 
         shader.bind();
         shader.num("u_texture1", 0);
