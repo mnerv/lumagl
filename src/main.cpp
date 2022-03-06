@@ -14,6 +14,7 @@
 #include "camera.hpp"
 #include "input.hpp"
 #include "mesh.hpp"
+#include "grid.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -56,109 +57,6 @@ uniform sampler2D u_texture2;
 
 void main() {
     color = io_color;
-}
-)";
-
-auto grid_vshader = R"(#version 410 core
-layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec4 a_color;
-layout (location = 2) in vec2 a_uv;
-
-out vec4 io_color;
-out vec2 io_uv;
-
-out mat4 f_projection;
-out mat4 f_view;
-out vec3 near;
-out vec3 far;
-
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_projection;
-
-vec3 unproject_point(vec3 point, mat4 view, mat4 projection) {
-    mat4 inv = inverse(projection * view);
-    vec4 unproj_point = inv * vec4(point, 1.f);
-    return unproj_point.xyz / unproj_point.w;
-}
-
-void main() {
-    f_projection = u_projection;
-    f_view = u_view;
-    io_color = a_color;
-    io_uv    = a_uv;
-
-    near = unproject_point(vec3(a_position.xy, -1.f), u_view, u_projection);
-    far  = unproject_point(vec3(a_position.xy,  1.f), u_view, u_projection);
-
-    gl_Position = vec4(a_position, 1.0f);
-}
-)";
-
-auto grid_fshader = R"(#version 410 core
-layout(location = 0) out vec4 color;
-
-in vec4 io_color;
-in vec2 io_uv;
-
-in mat4 f_projection;
-in mat4 f_view;
-in vec3 near;
-in vec3 far;
-
-uniform float u_far;
-uniform float u_near;
-uniform sampler2D u_texture;
-
-vec4 grid(vec3 point, float scale) {
-    vec2 coord = point.xz * scale;
-    vec2 dd    = fwidth(coord);
-    vec2 uv    = fract(coord - 0.5) - 0.5;
-    vec2 grid  = abs(uv) / dd;  // TODO: figure this out, adjust the line thickness
-    float line = min(grid.x, grid.y);
-    float min_z = min(dd.y, 1.0);
-    float min_x = min(dd.x, 1.0);
-    vec4 col    = vec4(0.3);
-    col.a       = 1.0 - min(line, 1.0);
-
-    if (-1.0 * min_x < point.x && point.x < 0.1 * min_x)
-        col.b = 1.0;
-    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z)
-        col.r = 1.0;
-
-    return col;
-}
-
-float compute_depth(vec3 point) {
-    vec4 clip_space = f_projection * f_view * vec4(point, 1.f);
-    float clip_space_depth = clip_space.z / clip_space.w;
-    float far  = gl_DepthRange.far;
-    float near = gl_DepthRange.near;
-    float depth = (((far - near) * clip_space_depth) + near + far) / 2.0;
-    return depth;
-}
-
-float computeLinearDepth(vec3 pos) {
-    vec4 clip_space_pos = f_projection * f_view * vec4(pos.xyz, 1.0);
-    float clip_space_depth = (clip_space_pos.z / clip_space_pos.w) * 2.0 - 1.0; // put back between -1 and 1
-    float linearDepth = (2.0 * u_near * u_far) / (u_far + u_near - clip_space_depth * (u_far - u_near)); // get linear value between 0.01 and 100
-    return linearDepth / u_far; // normalize
-}
-
-void main() {
-    float t = -near.y / (far.y - near.y);
-    vec3  R =  near + t * (far - near);
-    float is_on = float(t > 0);
-
-    float linear_depth = computeLinearDepth(R);
-    float fading = max(0, (0.5 - linear_depth));
-
-    color  = grid(R, 1);
-    color += grid(R, 10) * 0.25;
-    color *= is_on;
-    color.a *= fading;
-
-    gl_FragDepth = compute_depth(R);
 }
 )";
 
@@ -262,16 +160,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     cube_va->add_vertex_buffer(cube_vb);
     cube_va->set_index_buffer(cube_ib);
 
-    auto plane = luma::mesh::plane();
-    auto plane_va = luma::buffer::array::create();
-    auto plane_vb = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
-    plane_vb->set_layout(vertex_layout);
-    auto plane_ib = luma::buffer::index::create(plane->indices().data(), plane->index_count());
-    plane_va->add_vertex_buffer(plane_vb);
-    plane_va->set_index_buffer(plane_ib);
-
     luma::shader shader{vertex_shader, fragment_shader};
-    plane_vb->bind();
 
     auto screen_va = luma::buffer::array::create();
     auto screen = luma::mesh::plane();
@@ -283,7 +172,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
 
-    auto grid_shader = luma::shader::create(grid_vshader, grid_fshader);
     screen_shader.bind();
 
     shader.num("u_texture1", 0);
@@ -347,6 +235,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     //constexpr auto filename_size = 512;
     //auto filename = new char[filename_size];
     //std::memset(filename, 0, filename_size);
+
+    luma::grid grid_render{};
 
     auto is_running = true;
     while(is_running) {
@@ -457,17 +347,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         cube_ib->bind();
         glDrawElements(GL_TRIANGLES, cube_ib->count(), GL_UNSIGNED_INT, 0);
 
-        grid_shader->bind();
-        grid_shader->num("u_near", 0.01f);
-        grid_shader->num("u_far", 25.f);
-        grid_shader->num("u_texture", 0);
-        grid_shader->mat4("u_view", glm::value_ptr(camera.view()));
-        grid_shader->mat4("u_projection", glm::value_ptr(camera.projection()));
-
-        plane_va->bind();
-        plane_vb->bind();
-        plane_ib->bind();
-        glDrawElements(GL_TRIANGLES, plane_ib->count(), GL_UNSIGNED_INT, 0);
+        grid_render.render(camera.view(), camera.projection());
         framebuffer->unbind();
 
         // SECOND PASS
