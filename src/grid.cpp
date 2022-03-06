@@ -80,14 +80,26 @@ float compute_depth(vec3 point) {
     return depth;
 }
 
+float compute_fade(vec3 point) {
+    vec4 clip_space = projection * view * vec4(point, 1.0);
+    float clip_space_depth = (clip_space.z / clip_space.w) * 2.0 - 1.0;
+    float near = 0.01;
+    float far  = 500.0;
+    float linear_depth = (2.0 * near * far) / (far + near - clip_space_depth * (far - near));
+    return linear_depth / 500.0;
+}
+
 void main() {
     float t = -near.y / (far.y - near.y);
     vec3  R =  near + t * (far - near);
     float is_on = float(t > 0);
 
+    float fade = smoothstep(0.04, 0.0, compute_fade(R));
+
     o_color  = grid(R, 1, true);
     o_color += grid(R, 10, false) * 0.25;
     o_color *= is_on;
+    o_color.a *= fade;
 
     gl_FragDepth = compute_depth(R);
 }
