@@ -24,6 +24,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // https://codersdesiderata.com/2016/09/10/screen-view-to-world-coordinates/
+// https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)
 
 auto vertex_shader = R"(#version 410 core
 layout (location = 0) in vec3 a_position;
@@ -105,30 +106,27 @@ in mat4 f_view;
 in vec3 near;
 in vec3 far;
 
+uniform float u_far;
+uniform float u_near;
 uniform sampler2D u_texture;
 
-vec4 grid(vec3 fragPos3D, float scale, bool drawAxis) {
-    vec2 coord = fragPos3D.xz * scale;
-    vec2 derivative = fwidth(coord);
-    vec2 grid = abs(fract(coord - 0.5) - 0.5) / derivative;
+vec4 grid(vec3 point, float scale) {
+    vec2 coord = point.xz * scale;
+    vec2 dd    = fwidth(coord);
+    vec2 uv    = fract(coord - 0.5) - 0.5;
+    vec2 grid  = abs(uv) / dd;  // TODO: figure this out, adjust the line thickness
     float line = min(grid.x, grid.y);
-    float minimumz = min(derivative.y, 1);
-    float minimumx = min(derivative.x, 1);
-    vec4 color = vec4(0.2, 0.2, 0.2, 1.0 - min(line, 1.0));
-    // z axis
-    if(fragPos3D.x > -0.1 * minimumx && fragPos3D.x < 0.1 * minimumx)
-        color.z = 1.0;
-    // x axis
-    if(fragPos3D.z > -0.1 * minimumz && fragPos3D.z < 0.1 * minimumz)
-        color.x = 1.0;
-    return color;
-}
+    float min_z = min(dd.y, 1.0);
+    float min_x = min(dd.x, 1.0);
+    vec4 col    = vec4(0.3);
+    col.a       = 1.0 - min(line, 1.0);
 
-float checkerboard(vec2 R, float scale) {
-    return float((
-        int(floor(R.x / scale)) +
-        int(floor(R.y / scale))
-    ) % 2);
+    if (-1.0 * min_x < point.x && point.x < 0.1 * min_x)
+        col.b = 1.0;
+    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z)
+        col.r = 1.0;
+
+    return col;
 }
 
 float compute_depth(vec3 point) {
@@ -140,22 +138,27 @@ float compute_depth(vec3 point) {
     return depth;
 }
 
-float compute_linear_depth(vec3 point) {
-    return 0.;
+float computeLinearDepth(vec3 pos) {
+    vec4 clip_space_pos = f_projection * f_view * vec4(pos.xyz, 1.0);
+    float clip_space_depth = (clip_space_pos.z / clip_space_pos.w) * 2.0 - 1.0; // put back between -1 and 1
+    float linearDepth = (2.0 * u_near * u_far) / (u_far + u_near - clip_space_depth * (u_far - u_near)); // get linear value between 0.01 and 100
+    return linearDepth / u_far; // normalize
 }
 
 void main() {
-    float t = -near.y / (far.y-near.y);
-    vec3 R = near + t * (far-near);
+    float t = -near.y / (far.y - near.y);
+    vec3  R =  near + t * (far - near);
+    float is_on = float(t > 0);
 
-    float depth = compute_depth(R);
-    gl_FragDepth = depth;
-
-    float linear_depth = compute_linear_depth(R);
+    float linear_depth = computeLinearDepth(R);
     float fading = max(0, (0.5 - linear_depth));
 
-    vec4 c = grid(R, 1, true) * float(t > 0);
-    color = c;
+    color  = grid(R, 1);
+    color += grid(R, 10) * 0.25;
+    color *= is_on;
+    color.a *= fading;
+
+    gl_FragDepth = compute_depth(R);
 }
 )";
 
@@ -312,8 +315,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     luma::perspective_camera camera{};
-    camera.move({0.f, 0.f, 2.f});
-    camera.set_front({0.f, 0.f, -1.f});
+    camera.move({0.f, 2.f, 2.f});
+    //camera.set_front({0.f, 0.f, -1.f});
 
     glm::mat4 model{1.f};
 
@@ -455,6 +458,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glDrawElements(GL_TRIANGLES, cube_ib->count(), GL_UNSIGNED_INT, 0);
 
         grid_shader->bind();
+        grid_shader->num("u_near", 0.01f);
+        grid_shader->num("u_far", 25.f);
         grid_shader->num("u_texture", 0);
         grid_shader->mat4("u_view", glm::value_ptr(camera.view()));
         grid_shader->mat4("u_projection", glm::value_ptr(camera.projection()));
