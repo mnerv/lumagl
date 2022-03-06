@@ -23,6 +23,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
+// https://codersdesiderata.com/2016/09/10/screen-view-to-world-coordinates/
+
 auto vertex_shader = R"(#version 410 core
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec4 a_color;
@@ -30,30 +32,15 @@ layout (location = 2) in vec2 a_uv;
 
 out vec4 io_color;
 out vec2 io_uv;
-out vec3 near_point;
-out vec3 far_point;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
-vec3 unproject_point(float x, float y, float z, mat4 view, mat4 projection) {
-    mat4 inv = inverse(projection * view);
-    vec4 unprojected_point = inv * vec4(x, y, z, 1.f);
-    return unprojected_point.xyz / unprojected_point.w;
-}
-
 void main() {
     io_color = a_color;
     io_uv    = a_uv;
-
-    vec3 p = a_position;
-
-    near_point = unproject_point(a_position.x, a_position.y, 0.f, u_view, u_projection).xyz;
-    far_point  = unproject_point(a_position.x, a_position.y, 1.f, u_view, u_projection).xyz;
-
     gl_Position = u_projection * u_view * u_model * vec4(a_position, 1.0f);
-    //gl_Position = vec4(a_position, 1.0f);
 }
 )";
 
@@ -62,18 +49,113 @@ layout(location = 0) out vec4 color;
 
 in vec4 io_color;
 in vec2 io_uv;
-in vec3 near_point;
-in vec3 far_point;
 
 uniform sampler2D u_texture1;
 uniform sampler2D u_texture2;
 
 void main() {
-    //color = io_color;
-    //color = mix(texture(u_texture1, io_uv), texture(u_texture2, io_uv), 0.5f);
-    //float t = - near_point.y / (far_point.y - near_point.y);
-    //color = vec4(1.f, 0.f, 0.f, 1.f);
     color = io_color;
+}
+)";
+
+auto grid_vshader = R"(#version 410 core
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec4 a_color;
+layout (location = 2) in vec2 a_uv;
+
+out vec4 io_color;
+out vec2 io_uv;
+
+out mat4 f_projection;
+out mat4 f_view;
+out vec3 near;
+out vec3 far;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
+vec3 unproject_point(vec3 point, mat4 view, mat4 projection) {
+    mat4 inv = inverse(projection * view);
+    vec4 unproj_point = inv * vec4(point, 1.f);
+    return unproj_point.xyz / unproj_point.w;
+}
+
+void main() {
+    f_projection = u_projection;
+    f_view = u_view;
+    io_color = a_color;
+    io_uv    = a_uv;
+
+    near = unproject_point(vec3(a_position.xy, -1.f), u_view, u_projection);
+    far  = unproject_point(vec3(a_position.xy,  1.f), u_view, u_projection);
+
+    gl_Position = vec4(a_position, 1.0f);
+}
+)";
+
+auto grid_fshader = R"(#version 410 core
+layout(location = 0) out vec4 color;
+
+in vec4 io_color;
+in vec2 io_uv;
+
+in mat4 f_projection;
+in mat4 f_view;
+in vec3 near;
+in vec3 far;
+
+uniform sampler2D u_texture;
+
+vec4 grid(vec3 fragPos3D, float scale, bool drawAxis) {
+    vec2 coord = fragPos3D.xz * scale;
+    vec2 derivative = fwidth(coord);
+    vec2 grid = abs(fract(coord - 0.5) - 0.5) / derivative;
+    float line = min(grid.x, grid.y);
+    float minimumz = min(derivative.y, 1);
+    float minimumx = min(derivative.x, 1);
+    vec4 color = vec4(0.2, 0.2, 0.2, 1.0 - min(line, 1.0));
+    // z axis
+    if(fragPos3D.x > -0.1 * minimumx && fragPos3D.x < 0.1 * minimumx)
+        color.z = 1.0;
+    // x axis
+    if(fragPos3D.z > -0.1 * minimumz && fragPos3D.z < 0.1 * minimumz)
+        color.x = 1.0;
+    return color;
+}
+
+float checkerboard(vec2 R, float scale) {
+    return float((
+        int(floor(R.x / scale)) +
+        int(floor(R.y / scale))
+    ) % 2);
+}
+
+float compute_depth(vec3 point) {
+    vec4 clip_space = f_projection * f_view * vec4(point, 1.f);
+    float clip_space_depth = clip_space.z / clip_space.w;
+    float far  = gl_DepthRange.far;
+    float near = gl_DepthRange.near;
+    float depth = (((far - near) * clip_space_depth) + near + far) / 2.0;
+    return depth;
+}
+
+float compute_linear_depth(vec3 point) {
+    return 0.;
+}
+
+void main() {
+    float t = -near.y / (far.y-near.y);
+    vec3 R = near + t * (far-near);
+
+    float depth = compute_depth(R);
+    gl_FragDepth = depth;
+
+    float linear_depth = compute_linear_depth(R);
+    float fading = max(0, (0.5 - linear_depth));
+
+    vec4 c = grid(R, 1, true) * float(t > 0);
+    color = c;
 }
 )";
 
@@ -178,15 +260,15 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     cube_va->set_index_buffer(cube_ib);
 
     auto plane = luma::mesh::plane();
-    auto vertex_array = luma::buffer::array::create();
-    auto vertex_buffer = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
-    vertex_buffer->set_layout(vertex_layout);
-    auto index_buffer = luma::buffer::index::create(plane->indices().data(), plane->index_count());
-    vertex_array->add_vertex_buffer(vertex_buffer);
-    vertex_array->set_index_buffer(index_buffer);
+    auto plane_va = luma::buffer::array::create();
+    auto plane_vb = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
+    plane_vb->set_layout(vertex_layout);
+    auto plane_ib = luma::buffer::index::create(plane->indices().data(), plane->index_count());
+    plane_va->add_vertex_buffer(plane_vb);
+    plane_va->set_index_buffer(plane_ib);
 
     luma::shader shader{vertex_shader, fragment_shader};
-    vertex_buffer->bind();
+    plane_vb->bind();
 
     auto screen_va = luma::buffer::array::create();
     auto screen = luma::mesh::plane();
@@ -198,6 +280,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
 
+    auto grid_shader = luma::shader::create(grid_vshader, grid_fshader);
     screen_shader.bind();
 
     shader.num("u_texture1", 0);
@@ -212,7 +295,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     uint32_t texture_render_buffer;
     glGenTextures(1, &texture_render_buffer);
     glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -330,7 +413,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         framebuffer->bind();
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -354,6 +437,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         //glEnable(GL_CULL_FACE);
         //glCullFace(GL_FRONT);
 
@@ -364,15 +449,20 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         shader.mat4("u_view", glm::value_ptr(camera.view()));
         shader.mat4("u_projection", glm::value_ptr(camera.projection()));
 
-        vertex_array->bind();
-        index_buffer->bind();
-        vertex_buffer->bind();
-        glDrawElements(GL_TRIANGLES, index_buffer->count(), GL_UNSIGNED_INT, 0);
-
         cube_va->bind();
         cube_vb->bind();
         cube_ib->bind();
         glDrawElements(GL_TRIANGLES, cube_ib->count(), GL_UNSIGNED_INT, 0);
+
+        grid_shader->bind();
+        grid_shader->num("u_texture", 0);
+        grid_shader->mat4("u_view", glm::value_ptr(camera.view()));
+        grid_shader->mat4("u_projection", glm::value_ptr(camera.projection()));
+
+        plane_va->bind();
+        plane_vb->bind();
+        plane_ib->bind();
+        glDrawElements(GL_TRIANGLES, plane_ib->count(), GL_UNSIGNED_INT, 0);
         framebuffer->unbind();
 
         // SECOND PASS

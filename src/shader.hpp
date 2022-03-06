@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "luma.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
@@ -35,6 +36,8 @@ class shader {
     ~shader();
 
     auto bind() -> void;
+
+    static auto create(std::string const& vertex, std::string const& fragment) -> ref<shader>;
 
   public:
     auto num(std::string const& name, uint32_t const& value) -> void;

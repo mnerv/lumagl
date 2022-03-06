@@ -32,15 +32,8 @@ perspective_camera::perspective_camera(float const& fov, glm::vec3 const& positi
     : camera(position, front, up), m_fov(fov) {}
 
 auto perspective_camera::update() -> void {
+    m_view = glm::lookAt(m_position, m_target, m_up);
     m_projection = glm::perspective(m_fov, m_width / m_height, m_near, m_far);
-
-    auto pos = glm::vec2{0.f, .5f};
-    auto inv = glm::inverse(m_projection * m_view);
-
-    auto near_point = inv * glm::vec4{pos.x, pos.y, 0.f, 1.f};
-    auto far_point  = inv * glm::vec4{pos.x, pos.y, 1.f, 1.f};
-
-    std::cout << near_point.z << ", " << far_point.z << '\n';
 }
 
 }

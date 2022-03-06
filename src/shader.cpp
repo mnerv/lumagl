@@ -1,6 +1,10 @@
 #include "shader.hpp"
 
 namespace luma {
+auto shader::create(std::string const& vertex, std::string const& fragment) -> ref<shader> {
+    return make_ref<shader>(vertex, fragment);
+}
+
 shader::shader(std::string const& vertex, std::string const& fragment) {
     auto vs = compile(GL_VERTEX_SHADER,   vertex.c_str());
     auto fs = compile(GL_FRAGMENT_SHADER, fragment.c_str());

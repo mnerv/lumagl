@@ -8,9 +8,9 @@ namespace luma {
 class window;
 
 constexpr glm::vec3 default_position{0.f,  0.f,  0.f};
-constexpr glm::vec3 default_front   {0.f,  0.f,  1.f};
+constexpr glm::vec3 default_front   {0.f,  0.f, -1.f};
 constexpr glm::vec3 default_up      {0.f,  1.f,  0.f};
-constexpr float default_near{1.f};
+constexpr float default_near{0.1f};
 constexpr float default_far {500.f};
 
 class camera {
