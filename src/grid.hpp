@@ -8,6 +8,12 @@
 namespace luma {
 class grid {
   public:
+    enum class plane {
+        xz, xy,
+        yz, yx,
+    };
+
+  public:
     grid(bool const& is_cw = true);
     ~grid() = default;
 

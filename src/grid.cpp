@@ -12,8 +12,8 @@ float grid::vertices[] = {
      1.0f, -1.0f,
 };
 uint32_t grid::cw_indices[]{
-    2, 1, 0,
-    3, 0, 2,
+    0, 1, 2,
+    0, 2, 3,
 };
 uint32_t grid::ccw_indices[]{
     0, 2, 1,
@@ -52,7 +52,7 @@ in vec3 far;
 uniform mat4 view;
 uniform mat4 projection;
 
-vec4 grid(vec3 point, float scale) {
+vec4 grid(vec3 point, float scale, bool is_axis) {
     vec2 coord = point.xz * scale;
     vec2 dd    = fwidth(coord);
     vec2 uv    = fract(coord - 0.5) - 0.5;
@@ -63,16 +63,16 @@ vec4 grid(vec3 point, float scale) {
     vec4 col    = vec4(0.3);
     col.a       = 1.0 - min(line, 1.0);
 
-    if (-1.0 * min_x < point.x && point.x < 0.1 * min_x)
-        col.b = 1.0;
-    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z)
-        col.r = 1.0;
+    if (-1.0 * min_x < point.x && point.x < 0.1 * min_x && is_axis)
+        col.rgb = vec3(0.984, 0.380, 0.490);
+    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z && is_axis)
+        col.rgb = vec3(0.427, 0.792, 0.909);
 
     return col;
 }
 
 float compute_depth(vec3 point) {
-    vec4 clip_space = projection * view * vec4(point, 1.f);
+    vec4 clip_space = projection * view * vec4(point, 1.0);
     float clip_space_depth = clip_space.z / clip_space.w;
     float far  = gl_DepthRange.far;
     float near = gl_DepthRange.near;
@@ -85,8 +85,8 @@ void main() {
     vec3  R =  near + t * (far - near);
     float is_on = float(t > 0);
 
-    o_color  = grid(R, 1);
-    o_color += grid(R, 10) * 0.25;
+    o_color  = grid(R, 1, true);
+    o_color += grid(R, 10, false) * 0.25;
     o_color *= is_on;
 
     gl_FragDepth = compute_depth(R);
