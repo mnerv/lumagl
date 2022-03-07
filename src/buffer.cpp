@@ -9,6 +9,10 @@ layout::layout(std::vector<element> const& elements) : m_elements(elements) {
     m_stride = calculate_stride();
     calculate_offset();
 }
+layout::layout(std::initializer_list<element> const& elements) : m_elements(elements) {
+    m_stride = calculate_stride();
+    calculate_offset();
+}
 
 auto layout::calculate_stride() -> std::size_t {
     std::size_t strides = 0;

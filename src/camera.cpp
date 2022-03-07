@@ -1,5 +1,4 @@
 #include "camera.hpp"
-#include "window.hpp"
 #include <iostream>
 
 #include "glm/gtc/matrix_transform.hpp"

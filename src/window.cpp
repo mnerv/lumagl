@@ -1,6 +1,8 @@
 #include "window.hpp"
 #include "input.hpp"
 
+#include <iostream>
+
 namespace luma {
 window::window(std::string const& name, int32_t const& width, int32_t const& height) {
     if (!glfwInit()) throw std::runtime_error("error initialising glfw");
@@ -20,19 +22,138 @@ window::window(std::string const& name, int32_t const& width, int32_t const& hei
         throw std::runtime_error("Failed to initialize GLAD");
 
     glfwSetWindowUserPointer(m_window, &m_data);
-
-    glfwSetFramebufferSizeCallback(m_window,
-    [](GLFWwindow* window, int32_t width, int32_t height) {
+    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int32_t width, int32_t height) {
         auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
         data->width  = width;
         data->height = height;
-    });
 
-    //glfwSetKeyCallback(m_window,
-    //[](GLFWwindow* window, int32_t key, int32_t code, int32_t action, int32_t mods) {
-    //    auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
-    //    data->keys.at(key
-    //});
+        auto it = data->events.find(event::type::window_resize);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = window_resize_event(width, height);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetFramebufferSizeCallback(m_window,
+    [](GLFWwindow* window, int32_t width, int32_t height) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+        data->buffer_width  = width;
+        data->buffer_height = height;
+
+        auto it = data->events.find(event::type::buffer_resize);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = buffer_resize_event(width, height);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetWindowPosCallback(m_window, [](GLFWwindow* window, int32_t xpos, int32_t ypos){
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+        data->x = xpos;
+        data->y = ypos;
+
+        auto it = data->events.find(event::type::window_move);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = window_move_event(xpos, ypos);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetWindowFocusCallback(m_window, [](GLFWwindow* window, int32_t focused) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+
+        auto it = data->events.find(event::type::window_focus);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = window_focus_event(focused);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double xpos, double ypos) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+
+        auto it = data->events.find(event::type::mouse_move);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = mouse_move_event(xpos, ypos);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int32_t button, int32_t action, int32_t mods) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+        double pos_x, pos_y;
+        glfwGetCursorPos(window, &pos_x, &pos_y);
+
+        if (action == GLFW_PRESS) {
+            auto it = data->events.find(event::type::mouse_press);
+            if (it == data->events.end()) return;
+            auto fns = it->second;
+
+            auto event = mouse_press_event(button, mods, pos_x, pos_y);
+            std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+                fn(event);
+            });
+        } else {
+            auto it = data->events.find(event::type::mouse_release);
+            if (it == data->events.end()) return;
+            auto fns = it->second;
+
+            auto event = mouse_release_event(button, mods, pos_x, pos_y);
+            std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+                fn(event);
+            });
+        }
+    });
+    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xoffset, double yoffset){
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+
+        auto it = data->events.find(event::type::mouse_wheel);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+        auto event = mouse_wheel_event(xoffset, yoffset);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
+    glfwSetKeyCallback(m_window, [](GLFWwindow* window, int32_t key, int32_t code, int32_t action, int32_t mods) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            auto it = data->events.find(event::type::key_down);
+            if (it == data->events.end()) return;
+            auto fns = it->second;
+
+            auto event = key_down_event(key, code, mods, action == GLFW_REPEAT);
+            std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+                fn(event);
+            });
+        } else {
+            auto it = data->events.find(event::type::key_up);
+            if (it == data->events.end()) return;
+            auto fns = it->second;
+
+            auto event = key_up_event(key, code, mods);
+            std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+                fn(event);
+            });
+        }
+    });
+    glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int codepoint) {
+        auto data = static_cast<window::data*>(glfwGetWindowUserPointer(window));
+        auto it = data->events.find(event::type::key_typed);
+        if (it == data->events.end()) return;
+        auto fns = it->second;
+
+        auto event = key_typed(codepoint);
+        std::for_each(std::begin(fns), std::end(fns), [&](auto const& fn) {
+            fn(event);
+        });
+    });
 
     glfwGetWindowSize(m_window, &m_data.width, &m_data.height);
 }
@@ -69,6 +190,18 @@ auto window::position(int32_t const& x, int32_t const& y) -> void {
     if (y != DONT_CARE) m_data.y = y;
 
     glfwSetWindowPos(m_window, m_data.x, m_data.y);
+}
+
+auto window::add_event_listener(event::type const& type, event_fn const& callback) -> void {
+    if (m_data.events.find(type) == m_data.events.end()) {
+        std::vector<event_fn> fns{callback};
+        m_data.events.insert({type, std::move(fns)});
+    } else {
+        m_data.events[type].push_back(std::move(callback));
+    }
+}
+
+auto window::remove_event_listener([[maybe_unused]]event_fn const& callback) -> void {
 }
 }
 

@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 #include "luma.hpp"
+#include "event.hpp"
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
@@ -15,9 +17,10 @@ constexpr int32_t DONT_CARE = INT32_MIN;
 class window{
   public:
     inline static auto GLSL_VERSION = "#version 410";
+    using event_fn = std::function<void(event const&)>;
 
   public:
-    window(std::string const& name = "helloworld", int32_t const& width = 640, int32_t const& height = 480);
+    window(std::string const& name = "luma", int32_t const& width = 640, int32_t const& height = 480);
     ~window();
 
     auto swap() -> void;
@@ -35,15 +38,22 @@ class window{
     auto width() const -> int32_t { return m_data.width; }
     auto height() const -> int32_t { return m_data.height; }
 
+    auto add_event_listener(event::type const& type, event_fn const& callback) -> void;
+    auto remove_event_listener(event_fn const& callback) -> void;
+
   private:
     GLFWwindow* m_window;
 
     struct data {
+        int32_t buffer_width;
+        int32_t buffer_height;
         int32_t width;
         int32_t height;
         int32_t x;
         int32_t y;
+
         std::unordered_map<int32_t, std::shared_ptr<state::key>> keys;
+        std::unordered_map<event::type, std::vector<event_fn>> events;
     };
     data m_data;
 };

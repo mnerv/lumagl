@@ -1,10 +1,10 @@
-workspace 'helloworld'
+workspace 'luma'
   configurations {
     'debug',
     'release'
   }
 
-project 'helloworld'
+project 'luma'
   kind 'ConsoleApp'
   language 'C++'
   staticruntime 'On'

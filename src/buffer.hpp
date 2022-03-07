@@ -72,6 +72,7 @@ struct element {
 
 class layout {
   public:
+    layout(std::initializer_list<element> const& elements);
     layout(std::vector<element> const& elements);
     ~layout() = default;
 

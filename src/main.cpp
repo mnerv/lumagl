@@ -15,6 +15,7 @@
 #include "input.hpp"
 #include "mesh.hpp"
 #include "grid.hpp"
+#include "event.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -88,6 +89,11 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     luma::window window;
     //window.position(luma::DONT_CARE, -800);
 
+    int32_t width, height;
+    glfwGetFramebufferSize(window.get_native(), &width, &height);
+    int32_t w_width, w_height;
+    glfwGetWindowSize(window.get_native(), &w_width, &w_height);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -104,12 +110,14 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
     ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
-    luma::buffer::layout vertex_layout{{
+    luma::buffer::layout vertex_layout{
         {luma::shader::type::vec3, "a_position"},
         {luma::shader::type::vec4, "a_color"},
         {luma::shader::type::vec2, "a_uv"},
-    }};
+    };
     luma::shader shader{vertex_shader, fragment_shader};
+    luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
+    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/doit.png");
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();
@@ -126,18 +134,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     screen_vb->set_layout(vertex_layout);
     screen_va->add_vertex_buffer(screen_vb);
     screen_va->set_index_buffer(screen_ib);
-
-    luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-
-    screen_shader.bind();
-
-    shader.num("u_texture1", 0);
-    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
-
-    int32_t width, height;
-    glfwGetFramebufferSize(window.get_native(), &width, &height);
-    int32_t w_width, w_height;
-    glfwGetWindowSize(window.get_native(), &w_width, &w_height);
 
     auto framebuffer = luma::make_ref<luma::buffer::frame>();
     uint32_t texture_render_buffer;
@@ -158,8 +154,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glm::mat4 model{1.f};
+    luma::grid grid_render{};
 
     bool is_cursor_on  = true;
     auto toggle_cursor = window.make_key(GLFW_KEY_ESCAPE);
@@ -184,33 +179,46 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     float boost = 1.0f;
     //bool first_loop = true;
 
-    glm::vec2 scene_size{window.width(), window.height()};
-    //constexpr auto filename_size = 512;
-    //auto filename = new char[filename_size];
-    //std::memset(filename, 0, filename_size);
-
-    luma::grid grid_render{};
-
+    glm::mat4 model{1.f};
     luma::camera camera{};
-
     auto is_running = true;
+
+    auto on_wheel = [&](luma::event const& e) {
+        std::cout << e.to_string() << '\n';
+    };
+    auto on_key_down = [&](luma::event const& e) {
+        auto press_ev = static_cast<luma::key_down_event const&>(e);
+        if (press_ev.key() == GLFW_KEY_Q) is_running = false;
+    };
+
+    window.add_event_listener(luma::event::type::key_down, on_key_down);
+    window.add_event_listener(luma::event::type::mouse_wheel, on_wheel);
+
+    // GOAL: Blender camera navigation
+    //          #1. Orbit:
+    //              - scroll
+    //              - middle mouse
+    //          #2. Pan:
+    //              - [shift | option]+scroll
+    //              - [shift | option]+middle mouse
+    //          #2. Zoom:
+    //              - control+scroll
+    //              - control+middle mouse
+
     while(is_running) {
         glfwGetFramebufferSize(window.get_native(), &width, &height);
         glfwGetWindowSize(window.get_native(), &w_width, &w_height);
 
+        is_running = !window.should_close();
         time[1] = time[0];
         time[0] = glfwGetTime();
         delta_time = time[0] - time[1];
 
-        scene_size.x = window.width();
-        scene_size.y = window.height();
-        is_running = !window.should_close();
         mouse_previous = mouse_current;
         glfwGetCursorPos(window.get_native(), &mouse_current.x, &mouse_current.y);
         auto mouse_delta = mouse_current - mouse_previous;
 
           // Handle inputs
-        if (luma::state::is_press(quit_key)) is_running = false;
         if (luma::state::is_clicked(toggle_cursor)) {
             is_cursor_on = !is_cursor_on;
             auto cursor_status = is_cursor_on ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;

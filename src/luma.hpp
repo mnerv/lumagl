@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 
+#define LUMA_BIT(x) 1 << x
+
 namespace luma {
 template <typename T>
 using ref = std::shared_ptr<T>;
