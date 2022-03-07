@@ -4,6 +4,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 namespace luma {
+// 
 
 float grid::vertices[] = {
     -1.0f, -1.0f,
@@ -65,9 +66,9 @@ vec4 grid(vec3 point, float scale, bool is_axis) {
     col.a       = 1.0 - min(line, 1.0);
 
     if (-1.0 * min_x < point.x && point.x < 0.1 * min_x && is_axis)
-        col.rgb = vec3(0.984, 0.380, 0.490);
-    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z && is_axis)
         col.rgb = vec3(0.427, 0.792, 0.909);
+    if (-1.0 * min_z < point.z && point.z < 0.1 * min_z && is_axis)
+        col.rgb = vec3(0.984, 0.380, 0.490);
     return col;
 }
 

@@ -24,9 +24,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-// https://codersdesiderata.com/2016/09/10/screen-view-to-world-coordinates/
-// https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)
-
 auto vertex_shader = R"(#version 410 core
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec4 a_color;
@@ -52,11 +49,10 @@ layout(location = 0) out vec4 color;
 in vec4 io_color;
 in vec2 io_uv;
 
-uniform sampler2D u_texture1;
-uniform sampler2D u_texture2;
+uniform sampler2D u_texture;
 
 void main() {
-    color = texture(u_texture1, io_uv);
+    color = texture(u_texture, io_uv);
 }
 )";
 
@@ -67,10 +63,6 @@ layout (location = 2) in vec2 a_uv;
 
 out vec4 io_color;
 out vec2 io_uv;
-
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_projection;
 
 void main() {
     io_color = a_color;
@@ -91,40 +83,6 @@ void main() {
     color = texture(u_texture, io_uv);
 }
 )";
-
-float cube_vertices[] = {
-    // bottom
-    -1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
-    -1.0f, -1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
-     1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
-     1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
-
-    // top
-    -1.0f,  1.0f, -1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f, 0.0f,
-    -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f,
-     1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-     1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-};
-
-uint32_t cube_indices[] = {
-    0, 2, 3,
-    0, 1, 2,
-
-    6, 5, 4,
-    6, 4, 7,
-
-    7, 3, 2,
-    2, 6, 7,
-
-    4, 1, 0,
-    1, 4, 5,
-
-    5, 2, 1,
-    2, 5, 6,
-
-    7, 4, 0,
-    0, 3, 7,
-};
 
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
@@ -201,10 +159,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    luma::perspective_camera camera{};
-    camera.move({0.f, 2.f, 2.f});
-    //camera.set_front({0.f, 0.f, -1.f});
-
     glm::mat4 model{1.f};
 
     bool is_cursor_on  = true;
@@ -221,7 +175,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     double time[2]{glfwGetTime(), 0};
     double delta_time = 0;
-    float camera_speed = 1.f;
+    //float camera_speed = 1.f;
 
     glm::dvec2 mouse_current{};
     glm::dvec2 mouse_previous{};
@@ -236,6 +190,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     //std::memset(filename, 0, filename_size);
 
     luma::grid grid_render{};
+
+    luma::camera camera{};
 
     auto is_running = true;
     while(is_running) {
@@ -262,21 +218,21 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         }
 
         if (luma::state::is_press(up_key)) {
-            camera.move_delta(camera_speed * boost * camera.front() * float(delta_time));
+            //camera.move_delta(camera_speed * boost * camera.front() * float(delta_time));
         } else if (luma::state::is_press(down_key)) {
-            camera.move_delta(-camera_speed * boost * camera.front() * float(delta_time));
+            //camera.move_delta(-camera_speed * boost * camera.front() * float(delta_time));
         }
 
         if (luma::state::is_press(left_key)) {
-            camera.move_delta(-camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
+            //camera.move_delta(-camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
         } else if (luma::state::is_press(right_key)) {
-            camera.move_delta(camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
+            //camera.move_delta(camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
         }
 
         if (luma::state::is_press(plus_alt)) {
-            camera.move_delta(camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
+            //camera.move_delta(camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
         } else if (luma::state::is_press(neg_alt)) {
-            camera.move_delta(-camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
+            //camera.move_delta(-camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
         }
 
         if (luma::state::is_press(speed_boost)) {
@@ -300,8 +256,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             direction.x = -std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
             direction.y =  std::sin(glm::radians(pitch));
             direction.z = -std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
-            camera.set_front(glm::normalize(direction));
+            //camera.set_front(glm::normalize(direction));
         }
+
+        camera.update_perspective(float(width) / float(height), 45.0f);
 
         framebuffer->bind();
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
@@ -320,9 +278,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             std::cerr << "ERROR::FRAMEBUFFER: Framebuffer is not complete!\n";
         framebuffer->unbind();
 
-        camera.set_screen(width, height);
-        camera.update();
-
         // FIRST PASS
         framebuffer->bind();
         glViewport(0, 0, width, height);
@@ -331,14 +286,14 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(GL_FRONT);
 
         shader.bind();
-        shader.num("u_texture1", 0);
+        shader.num("u_texture", 0);
         texture->bind(0);
         shader.mat4("u_model", glm::value_ptr(model));
-        shader.mat4("u_view", glm::value_ptr(camera.view()));
+        shader.mat4("u_view", glm::value_ptr(camera.world_to_view()));
         shader.mat4("u_projection", glm::value_ptr(camera.projection()));
 
         plane_va->bind();
@@ -346,7 +301,8 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         plane_ib->bind();
         glDrawElements(GL_TRIANGLES, plane_ib->count(), GL_UNSIGNED_INT, 0);
 
-        grid_render.render(camera.view(), camera.projection());
+        grid_render.render(camera.world_to_view(), camera.projection(),
+                           glm::vec2{camera.near, camera.far});
         framebuffer->unbind();
 
         // SECOND PASS
@@ -358,10 +314,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         screen_shader.bind();
         screen_shader.num("u_texture", 0);
-        screen_shader.mat4("u_model", glm::value_ptr(model));
-        screen_shader.mat4("u_view", glm::value_ptr(camera.view()));
-        screen_shader.mat4("u_projection", glm::value_ptr(camera.projection()));
-
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_render_buffer);
 
