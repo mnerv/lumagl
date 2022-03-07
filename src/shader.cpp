@@ -28,6 +28,10 @@ auto shader::num(std::string const& name, float const& value) -> void {
     bind();
     glUniform1f(uniform_location(name), value);
 }
+auto shader::num(std::string const& name, uint32_t const& count, float const* value) -> void {
+    bind();
+    glUniform1fv(uniform_location(name), count, value);
+}
 
 auto shader::vec4(std::string const& name, glm::vec4 const& value) -> void {
     bind();

@@ -43,6 +43,7 @@ class shader {
     auto num(std::string const& name, uint32_t const& value) -> void;
     auto num(std::string const& name, int32_t const& value) -> void;
     auto num(std::string const& name, float const& value) -> void;
+    auto num(std::string const& name, uint32_t const& count, float const* value) -> void;
 
     auto vec4(std::string const& name, glm::vec4 const& value) -> void;
     auto vec4(std::string const& name, float const* value, uint32_t const& count = 1) -> void;

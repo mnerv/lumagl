@@ -56,7 +56,7 @@ uniform sampler2D u_texture1;
 uniform sampler2D u_texture2;
 
 void main() {
-    color = io_color;
+    color = texture(u_texture1, io_uv);
 }
 )";
 
@@ -151,19 +151,18 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         {luma::shader::type::vec4, "a_color"},
         {luma::shader::type::vec2, "a_uv"},
     }};
-
-    auto cube = luma::mesh::cube();
-    auto cube_va = luma::buffer::array::create();
-    auto cube_vb = luma::buffer::vertex::create(cube->vertices().data(), cube->vertices_size());
-    cube_vb->set_layout(vertex_layout);
-    auto cube_ib = luma::buffer::index::create(cube->indices().data(), cube->index_count());
-    cube_va->add_vertex_buffer(cube_vb);
-    cube_va->set_index_buffer(cube_ib);
-
     luma::shader shader{vertex_shader, fragment_shader};
 
-    auto screen_va = luma::buffer::array::create();
+    auto plane = luma::mesh::plane();
+    auto plane_va = luma::buffer::array::create();
+    auto plane_vb = luma::buffer::vertex::create(plane->vertices().data(), plane->vertices_size());
+    auto plane_ib = luma::buffer::index::create(plane->indices().data(), plane->index_count());
+    plane_vb->set_layout(vertex_layout);
+    plane_va->add_vertex_buffer(plane_vb);
+    plane_va->set_index_buffer(plane_ib);
+
     auto screen = luma::mesh::plane();
+    auto screen_va = luma::buffer::array::create();
     auto screen_vb = luma::buffer::vertex::create(screen->vertices().data(), screen->vertex_count() * sizeof(luma::mesh::vertex));
     auto screen_ib = luma::buffer::index::create(screen->indices().data(), screen->indices().size());
     screen_vb->set_layout(vertex_layout);
@@ -342,10 +341,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         shader.mat4("u_view", glm::value_ptr(camera.view()));
         shader.mat4("u_projection", glm::value_ptr(camera.projection()));
 
-        cube_va->bind();
-        cube_vb->bind();
-        cube_ib->bind();
-        glDrawElements(GL_TRIANGLES, cube_ib->count(), GL_UNSIGNED_INT, 0);
+        plane_va->bind();
+        plane_vb->bind();
+        plane_ib->bind();
+        glDrawElements(GL_TRIANGLES, plane_ib->count(), GL_UNSIGNED_INT, 0);
 
         grid_render.render(camera.view(), camera.projection());
         framebuffer->unbind();

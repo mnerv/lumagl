@@ -49,6 +49,7 @@ layout(location = 0) out vec4 o_color;
 in vec3 near;
 in vec3 far;
 
+uniform float[2] u_nearfar;
 uniform mat4 view;
 uniform mat4 projection;
 
@@ -67,7 +68,6 @@ vec4 grid(vec3 point, float scale, bool is_axis) {
         col.rgb = vec3(0.984, 0.380, 0.490);
     if (-1.0 * min_z < point.z && point.z < 0.1 * min_z && is_axis)
         col.rgb = vec3(0.427, 0.792, 0.909);
-
     return col;
 }
 
@@ -83,10 +83,10 @@ float compute_depth(vec3 point) {
 float compute_fade(vec3 point) {
     vec4 clip_space = projection * view * vec4(point, 1.0);
     float clip_space_depth = (clip_space.z / clip_space.w) * 2.0 - 1.0;
-    float near = 0.01;
-    float far  = 500.0;
+    float near = u_nearfar[0];
+    float far  = u_nearfar[1];
     float linear_depth = (2.0 * near * far) / (far + near - clip_space_depth * (far - near));
-    return linear_depth / 500.0;
+    return linear_depth / far;
 }
 
 void main() {
@@ -94,13 +94,12 @@ void main() {
     vec3  R =  near + t * (far - near);
     float is_on = float(t > 0);
 
-    float fade = smoothstep(0.04, 0.0, compute_fade(R));
-
+    float fade = max(0, 1.0 - compute_fade(R));
     o_color  = grid(R, 1, true);
-    o_color += grid(R, 10, false) * 0.25;
-    o_color *= is_on;
-    o_color.a *= fade;
+    //o_color += grid(R, 10, false) * 0.25;
+    o_color *= fade;
 
+    o_color *= is_on;
     gl_FragDepth = compute_depth(R);
 }
 )";
@@ -120,10 +119,11 @@ grid::grid(bool const& is_cw) {
     m_array_buffer->set_index_buffer(m_index_buffer);
 }
 
-auto grid::render(glm::mat4 const& view, glm::mat4 const& projection) const -> void {
+auto grid::render(glm::mat4 const& view, glm::mat4 const& projection, glm::vec2 const& near_far) const -> void {
     //glEnable(GL_DEPTH_TEST);
     //glEnable(GL_BLEND);
     m_shader->bind();
+    m_shader->num("u_nearfar", 2, glm::value_ptr(near_far));
     m_shader->mat4("view", glm::value_ptr(view));
     m_shader->mat4("projection", glm::value_ptr(projection));
 

@@ -17,7 +17,8 @@ class grid {
     grid(bool const& is_cw = true);
     ~grid() = default;
 
-    auto render(glm::mat4 const& view, glm::mat4 const& projection) const -> void;
+    auto render(glm::mat4 const& view, glm::mat4 const& projection,
+                glm::vec2 const& near_far = {0.01f, 500.f}) const -> void;
 
   private:
     ref<shader>         m_shader;
