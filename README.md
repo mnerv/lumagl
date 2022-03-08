@@ -34,7 +34,6 @@ preamek5 gmake2
 ## resources
 
  - [Learn OpenGL](https://learnopengl.com)
-
  - [Built-in Variable (GLSL)](https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL))
 
 ### camera

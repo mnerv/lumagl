@@ -1,6 +1,7 @@
 #include "window.hpp"
 #include "input.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 namespace luma {
@@ -195,13 +196,28 @@ auto window::position(int32_t const& x, int32_t const& y) -> void {
 auto window::add_event_listener(event::type const& type, event_fn const& callback) -> void {
     if (m_data.events.find(type) == m_data.events.end()) {
         std::vector<event_fn> fns{callback};
-        m_data.events.insert({type, std::move(fns)});
+        m_data.events.insert({type, fns});
     } else {
-        m_data.events[type].push_back(std::move(callback));
+        // TODO: Maybe check if the callback has already be added.
+        m_data.events[type].push_back(callback);
     }
 }
 
-auto window::remove_event_listener([[maybe_unused]]event_fn const& callback) -> void {
+auto window::remove_event_listener(event::type const& type, event_fn const& callback) -> void {
+    auto it = m_data.events.find(type);
+    if (it == m_data.events.end()) return;
+    auto fns = it->second;
+
+    auto found = std::find_if(std::begin(fns), std::end(fns),
+    [&](event_fn const& fn) {
+        if (fn.target_type() == callback.target_type()) {
+            auto t1 = fn.target<event_fn>();
+            auto t2 = callback.target<event_fn>();
+            return t1 == t2;
+        }
+        return false;
+    });
+    std::cout << "found callback to remove: " << (found == fns.end() ? "true" : "false") << '\n';
 }
 }
 

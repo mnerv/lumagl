@@ -1,4 +1,7 @@
 #pragma once
+
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <memory>
 
 #define LUMA_BIT(x) 1 << x
@@ -41,5 +44,4 @@ namespace mesh {
 struct vertex;
 class surface;
 }
-
 }

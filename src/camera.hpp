@@ -10,22 +10,25 @@ class camera {
     float near = 0.01f;
     float far  = 1000.0f;
 
+    glm::vec3 position{0.0f, 0.0f, 1.0f};
+    glm::vec3 target  {0.0f, 0.0f, 0.0f};
+    glm::vec3 up      {0.0f, 1.0f, 0.0f};
+
   public:
-    camera(glm::vec3 const& direction = {0.0f, 0.0f, 0.0f},
-           glm::vec3 const& up        = {0.0f, 1.0f, 0.0f});
+    camera();
     ~camera() = default;
 
     auto update_perspective(float const& aspect, float const& fov = 45.0f) -> void;
     auto update_orthographic() -> void {};
 
+    auto front() const -> glm::vec3 { return glm::normalize(glm::cross(up, get_right_vector())); }
+
     // view matrix
     auto world_to_view() const -> glm::mat4;
     auto projection() const -> glm::mat4 const& { return m_projection; }
 
-  private:
-    glm::vec3 m_position {-2.0f, 1.0f, -2.0f};
-    glm::vec3 m_direction;
-    glm::vec3 m_up;
+    auto get_view_direction() const -> glm::vec3 { return -glm::transpose(world_to_view())[2]; }
+    auto get_right_vector() const -> glm::vec3 { return glm::transpose(world_to_view())[0]; }
 
   private:
     glm::mat4 m_projection{1.0f};

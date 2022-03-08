@@ -85,6 +85,7 @@ void main() {
 }
 )";
 
+
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
     luma::window window;
     //window.position(luma::DONT_CARE, -800);
@@ -117,7 +118,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     luma::shader shader{vertex_shader, fragment_shader};
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/doit.png");
+    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();
@@ -165,8 +166,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto down_key      = window.make_key(GLFW_KEY_S);
     auto plus_alt      = window.make_key(GLFW_KEY_F);
     auto neg_alt       = window.make_key(GLFW_KEY_V);
-    auto speed_boost   = window.make_key(GLFW_KEY_LEFT_SHIFT);
     auto reset_camera  = window.make_key(GLFW_KEY_0);
+
+    auto pan_on  = window.make_key(GLFW_KEY_LEFT_SHIFT);
+    auto zoom_on = window.make_key(GLFW_KEY_LEFT_CONTROL);
 
     double time[2]{glfwGetTime(), 0};
     double delta_time = 0;
@@ -176,22 +179,62 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     glm::dvec2 mouse_previous{};
     float sensitivity = 0.1f;
     float yaw = 0.f, pitch = 0.f;
-    float boost = 1.0f;
     //bool first_loop = true;
 
     glm::mat4 model{1.f};
     luma::camera camera{};
+    camera.position = {0.0f, 0.0f, 2.0f};
     auto is_running = true;
 
+    bool arcball_on = true;
+    float arcball_speed = 4.0f;
+
     auto on_wheel = [&](luma::event const& e) {
-        std::cout << e.to_string() << '\n';
+        auto evt = static_cast<luma::mouse_wheel_event const&>(e);
+        if (arcball_on) {
+            glm::vec2 d_angle{2.0 * M_PI / float(width), 2.0 * M_PI / float(height)};
+            glm::vec4 position{camera.position.x, camera.position.y, camera.position.z, 1.0f};
+            glm::vec4 pivot{camera.target.x, camera.target.y, camera.target.z, 1.0f};
+
+            float angle_x = evt.x() * d_angle.x * arcball_speed;
+            float angle_y = evt.y() * d_angle.y * arcball_speed;
+
+            glm::mat4 rotation_mat_x{1.0f};
+            rotation_mat_x = glm::rotate(rotation_mat_x, angle_x, camera.up);
+            position = (rotation_mat_x * (position - pivot)) + pivot;
+
+            glm::mat4 rotation_mat_y{1.0f};
+            rotation_mat_y = glm::rotate(rotation_mat_y, angle_y, camera.get_right_vector());
+            glm::vec3 final_position = (rotation_mat_y * (position - pivot)) + pivot;
+
+            camera.position = final_position;
+        } else if(luma::state::is_press(zoom_on)) {
+            auto front_vector = glm::normalize(camera.position - camera.target);
+            glm::vec3 move_delta = front_vector * float(delta_time) * float(evt.y());
+            camera.position += move_delta;
+        } else if (luma::state::is_press(pan_on)) {
+            auto front_vector = camera.front();
+            auto right_vector = glm::normalize(glm::cross(front_vector, camera.up));
+
+            camera.position += camera.up * float(evt.y()) * float(delta_time);
+            camera.position += right_vector * float(evt.x()) * float(delta_time);
+            camera.target = camera.position + front_vector;
+        }
     };
     auto on_key_down = [&](luma::event const& e) {
-        auto press_ev = static_cast<luma::key_down_event const&>(e);
-        if (press_ev.key() == GLFW_KEY_Q) is_running = false;
+        auto evt = static_cast<luma::key_down_event const&>(e);
+        if (evt.key() == GLFW_KEY_Q) is_running = false;
+        if (evt.key() == GLFW_KEY_LEFT_SHIFT || evt.key() == GLFW_KEY_LEFT_CONTROL)
+            arcball_on = false;
+    };
+    auto on_key_up = [&](luma::event const& e) {
+        auto evt = static_cast<luma::key_up_event const&>(e);
+        if (evt.key() == GLFW_KEY_LEFT_SHIFT || evt.key() == GLFW_KEY_LEFT_CONTROL)
+            arcball_on = true;
     };
 
     window.add_event_listener(luma::event::type::key_down, on_key_down);
+    window.add_event_listener(luma::event::type::key_up, on_key_up);
     window.add_event_listener(luma::event::type::mouse_wheel, on_wheel);
 
     // GOAL: Blender camera navigation
@@ -241,12 +284,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
             //camera.move_delta(camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
         } else if (luma::state::is_press(neg_alt)) {
             //camera.move_delta(-camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
-        }
-
-        if (luma::state::is_press(speed_boost)) {
-            boost = 4.f;
-        } else {
-            boost = 1.f;
         }
 
         if (luma::state::is_clicked(reset_camera)) {

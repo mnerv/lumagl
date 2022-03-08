@@ -27,9 +27,9 @@ class window{
     auto poll() -> void;
     auto get_native() -> GLFWwindow*;
     auto should_close() -> bool;
+
     auto get_key(int32_t key) -> int32_t;
     auto make_key(int32_t key) -> std::shared_ptr<state::key>;
-
     auto update_key(state::key& key) -> void;
     auto update_key(std::shared_ptr<state::key> const& key) -> void;
     auto update_keys(std::vector<std::shared_ptr<luma::state::key>> const& keys) -> void;
@@ -37,9 +37,14 @@ class window{
     auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
     auto width() const -> int32_t { return m_data.width; }
     auto height() const -> int32_t { return m_data.height; }
+    auto buffer_width() const -> int32_t { return m_data.buffer_width; }
+    auto buffer_height() const -> int32_t { return m_data.buffer_height; }
 
     auto add_event_listener(event::type const& type, event_fn const& callback) -> void;
-    auto remove_event_listener(event_fn const& callback) -> void;
+    // FIXME: Can't check for equality with std::function
+    //        Find a way to fix this. A solution might be
+    //        to return an id when adding the listener.
+    auto remove_event_listener(event::type const& type, event_fn const& callback) -> void;
 
   private:
     GLFWwindow* m_window;

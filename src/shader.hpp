@@ -16,7 +16,7 @@ class shader {
     enum class type : uint32_t {
         none = 0,
         // basic types
-        boole,
+        boolean,
         i8,  u8,
         i16, u16,
         i32, u32, p32, // packed 32-bit integer 16.16 integer
