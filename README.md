@@ -6,7 +6,7 @@ This project is for learning purpose only.
 
   - [premake5](https://premake.github.io)
   - [glfw](https://github.com/glfw/glfw)
-  - [glad](https://glad.dav1d.de)
+  - [glad](https://glad.dav1d.de) or [mononerv/glad](https://github.com/mononerv/glad)
   - [stb](https://github.com/nothings/stb)
   - [glm](https://github.com/g-truc/glm)
   - [imgui](https://github.com/ocornut/imgui)
@@ -16,8 +16,6 @@ This project is for learning purpose only.
 Download the required dependencies above. The `glfw` and `glad` library needs to
 be build first. When selecting glad make sure to select gl `Version 4.1` and
 profile in `Compatibility`. The build output needs to be in `lib` library.
-
-For `glfw` follow their build guide on
 
 Define theses environment variables `GLFW_PATH`, `GLAD_PATH`, `IMGUI_PATH`,
 `STB_PATH` and `GLM_PATH` that points to the correct path.
@@ -56,3 +54,6 @@ preamek5 gmake2
  - [The Art of Code](https://www.youtube.com/channel/UCcAlTqd9zID6aNX3TzwxJXg) - Shader programming
  - [ShaderToy](https://www.shadertoy.com) - Shader programs
 
+### algorithms
+
+ - [Delaunay triangulation](https://en.wikipedia.org/wiki/Bowyer–Watson_algorithm) - For mesh creation
