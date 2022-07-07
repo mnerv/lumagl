@@ -85,9 +85,8 @@ void main() {
 }
 )";
 
-
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
-    luma::window window;
+    luma::window window{};
     //window.position(luma::DONT_CARE, -800);
 
     int32_t width, height;
@@ -118,7 +117,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     luma::shader shader{vertex_shader, fragment_shader};
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/marin.png");
+    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/o.jpg");
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();
@@ -177,8 +176,6 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     glm::dvec2 mouse_current{};
     glm::dvec2 mouse_previous{};
-    float sensitivity = 0.1f;
-    float yaw = 0.f, pitch = 0.f;
     //bool first_loop = true;
 
     glm::mat4 model{1.f};
@@ -223,6 +220,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     auto on_key_down = [&](luma::event const& e) {
         auto evt = static_cast<luma::key_down_event const&>(e);
+        std::cout << e.to_string() << "\n";
         if (evt.key() == GLFW_KEY_Q) is_running = false;
         if (evt.key() == GLFW_KEY_LEFT_SHIFT || evt.key() == GLFW_KEY_LEFT_CONTROL)
             arcball_on = false;
@@ -259,49 +257,12 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
         mouse_previous = mouse_current;
         glfwGetCursorPos(window.get_native(), &mouse_current.x, &mouse_current.y);
-        auto mouse_delta = mouse_current - mouse_previous;
 
           // Handle inputs
         if (luma::state::is_clicked(toggle_cursor)) {
             is_cursor_on = !is_cursor_on;
             auto cursor_status = is_cursor_on ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
             glfwSetInputMode(window.get_native(), GLFW_CURSOR, cursor_status);
-        }
-
-        if (luma::state::is_press(up_key)) {
-            //camera.move_delta(camera_speed * boost * camera.front() * float(delta_time));
-        } else if (luma::state::is_press(down_key)) {
-            //camera.move_delta(-camera_speed * boost * camera.front() * float(delta_time));
-        }
-
-        if (luma::state::is_press(left_key)) {
-            //camera.move_delta(-camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
-        } else if (luma::state::is_press(right_key)) {
-            //camera.move_delta(camera_speed * boost * glm::normalize(glm::cross(camera.front(), camera.up())) * float(delta_time));
-        }
-
-        if (luma::state::is_press(plus_alt)) {
-            //camera.move_delta(camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
-        } else if (luma::state::is_press(neg_alt)) {
-            //camera.move_delta(-camera_speed * boost * glm::vec3{0.f, 1.f, 0.f} * float(delta_time));
-        }
-
-        if (luma::state::is_clicked(reset_camera)) {
-            yaw = 0;
-            pitch = 1;
-        }
-
-        if (!is_cursor_on) {
-            yaw   += mouse_delta.x * -sensitivity;
-            pitch += mouse_delta.y * -sensitivity;
-
-            if (pitch > 90.f - 1.f) pitch = 89.f;
-            if (pitch < -90.f + 1.f) pitch = -89.f;
-            glm::vec3 direction{};
-            direction.x = -std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
-            direction.y =  std::sin(glm::radians(pitch));
-            direction.z = -std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
-            //camera.set_front(glm::normalize(direction));
         }
 
         camera.update_perspective(float(width) / float(height), 45.0f);
@@ -337,16 +298,23 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         shader.bind();
         shader.num("u_texture", 0);
         texture->bind(0);
+
+        model = glm::mat4{1.0f};
+        model = glm::translate(model, {0.0f, 1.f, 0.0f});
+
+        auto world_to_view = camera.world_to_view();
+        auto projection    = camera.projection();
+
         shader.mat4("u_model", glm::value_ptr(model));
-        shader.mat4("u_view", glm::value_ptr(camera.world_to_view()));
-        shader.mat4("u_projection", glm::value_ptr(camera.projection()));
+        shader.mat4("u_view", glm::value_ptr(world_to_view));
+        shader.mat4("u_projection", glm::value_ptr(projection));
 
         plane_va->bind();
         plane_vb->bind();
         plane_ib->bind();
         glDrawElements(GL_TRIANGLES, plane_ib->count(), GL_UNSIGNED_INT, 0);
 
-        grid_render.render(camera.world_to_view(), camera.projection(),
+        grid_render.render(world_to_view, projection,
                            glm::vec2{camera.near, camera.far});
         framebuffer->unbind();
 

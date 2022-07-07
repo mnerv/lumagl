@@ -23,7 +23,7 @@ project 'luma'
   }
 
   -- Need to be on docking branch
-  local imgui = os.getenv("IMGUI_PATH")
+  local imgui = os.getenv("IMGUI_SDK")
 
   files {
     'src/**.h',
@@ -36,10 +36,10 @@ project 'luma'
     imgui .. '/backends/imgui_impl_opengl3.cpp',
   }
 
-  local glfw = os.getenv('GLFW_PATH')
-  local glad = os.getenv('GLAD_PATH')
-  local stb  = os.getenv('STB_PATH')
-  local glm  = os.getenv('GLM_PATH')
+  local glfw = os.getenv('GLFW_SDK')
+  local glad = os.getenv('GLAD_SDK')
+  local stb  = os.getenv('STB_SDK')
+  local glm  = os.getenv('GLM_SDK')
 
   includedirs {
     'src',

@@ -12,7 +12,7 @@
 #include "GLFW/glfw3.h"
 
 namespace luma {
-constexpr int32_t DONT_CARE = INT32_MIN;
+constexpr i32 DONT_CARE = min::i32;
 
 class window{
   public:
@@ -35,9 +35,9 @@ class window{
     auto update_keys(std::vector<std::shared_ptr<luma::state::key>> const& keys) -> void;
 
     auto position(int32_t const& x = DONT_CARE, int32_t const& y = DONT_CARE) -> void;
-    auto width() const -> int32_t { return m_data.width; }
+    auto width()  const -> int32_t { return m_data.width; }
     auto height() const -> int32_t { return m_data.height; }
-    auto buffer_width() const -> int32_t { return m_data.buffer_width; }
+    auto buffer_width()  const -> int32_t { return m_data.buffer_width; }
     auto buffer_height() const -> int32_t { return m_data.buffer_height; }
 
     auto add_event_listener(event::type const& type, event_fn const& callback) -> void;

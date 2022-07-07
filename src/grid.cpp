@@ -4,9 +4,8 @@
 #include "glm/gtc/type_ptr.hpp"
 
 namespace luma {
-// 
 
-float grid::vertices[] = {
+float grid::vertices[]{
     -1.0f, -1.0f,
     -1.0f,  1.0f,
      1.0f,  1.0f,
@@ -23,7 +22,13 @@ uint32_t grid::ccw_indices[]{
 
 char const* grid::vertex_shader   = R"(#version 410 core
 layout (location = 0) in vec2 a_position;
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
 
+layout(location = 0) out vec4 o_color;
 out vec3 near;
 out vec3 far;
 
@@ -45,6 +50,11 @@ void main() {
 )";
 
 char const* grid::fragment_shader = R"(#version 410 core
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
 layout(location = 0) out vec4 o_color;
 
 in vec3 near;
@@ -97,7 +107,7 @@ void main() {
 
     //float fade = max(0, 1.0 - compute_fade(R));
     float fade = smoothstep(0.04, 0.0, compute_fade(R));
-    o_color  = grid(R, 1, true);
+    o_color = grid(R, 1, true);
     //o_color += grid(R, 10, false) * 0.25;
     o_color *= fade;
 
@@ -122,8 +132,8 @@ grid::grid(bool const& is_cw) {
 }
 
 auto grid::render(glm::mat4 const& view, glm::mat4 const& projection, glm::vec2 const& near_far) const -> void {
-    //glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
     m_shader->bind();
     m_shader->num("u_nearfar", 2, glm::value_ptr(near_far));
     m_shader->mat4("view", glm::value_ptr(view));

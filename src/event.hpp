@@ -52,10 +52,10 @@ class buffer_resize_event : public event {
     auto get_name() const -> std::string override { return "buffer_resize_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "buffer_resize_event{";
+        ss << "buffer_resize_event {";
         ss << "width: "  << m_width << ", ";
         ss << "height: " << m_height;
-        ss << "}";
+        ss << " }";
         return ss.str();
     }
 
@@ -77,10 +77,10 @@ class window_resize_event : public event {
     auto get_name() const -> std::string override { return "window_resize_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "window_resize_event{";
+        ss << "window_resize_event {";
         ss << "width: "  << m_width << ", ";
         ss << "height: " << m_height;
-        ss << "}";
+        ss << " }";
         return ss.str();
     }
 
@@ -102,10 +102,10 @@ class window_move_event : public event {
     auto get_name() const -> std::string override { return "window_move_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "window_move_event{";
+        ss << "window_move_event { ";
         ss << "x: " << m_x << ", ";
         ss << "y: " << m_y;
-        ss << "}";
+        ss << " }";
         return ss.str();
     }
 
@@ -127,9 +127,9 @@ class window_focus_event : public event {
     auto get_name() const -> std::string override { return "window_focus_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "window_focus_event{";
+        ss << "window_focus_event { ";
         ss << "focus: " << (m_is_focus ? "true" : "false");
-        ss << "}";
+        ss << " }";
         return ss.str();
     }
 
@@ -149,10 +149,10 @@ class mouse_move_event : public event {
     auto get_name() const -> std::string override { return "mouse_move_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "mouse_move_event{";
+        ss << "mouse_move_event { ";
         ss << "x: " << m_x << ", ";
         ss << "y: " << m_y;
-        ss << "}";
+        ss << " }";
         return ss.str();
     }
 
@@ -174,11 +174,11 @@ class mouse_press_event : public event {
     auto get_name() const -> std::string override { return "mouse_press_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "mouse_press_event{";
+        ss << "mouse_press_event { ";
         ss << "button: " << m_button << ", ";
         ss << "mods: " << m_mods << ", ";
         ss << "x: " << m_x << ", ";
-        ss << "y: " << m_y << "}";
+        ss << "y: " << m_y << " }";
         return ss.str();
     }
 
@@ -205,11 +205,11 @@ class mouse_release_event : public event {
     auto get_name() const -> std::string override { return "mouse_release_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "mouse_release_event{";
+        ss << "mouse_release_event { ";
         ss << "button: " << m_button << ", ";
         ss << "mods: " << m_mods << ", ";
         ss << "x: " << m_x << ", ";
-        ss << "y: " << m_y << "}";
+        ss << "y: " << m_y << " }";
         return ss.str();
     }
 
@@ -235,10 +235,10 @@ class mouse_wheel_event : public event {
     auto get_name() const -> std::string override { return "mouse_wheel_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "mouse_wheel_event{";
+        ss << "mouse_wheel_event { ";
         ss << "x: " << m_x << ", ";
         ss << "y: " << m_y;
-        ss << "}";
+        ss << " } ";
         return ss.str();
     }
 
@@ -262,11 +262,11 @@ class key_down_event : public event {
     auto get_name() const -> std::string override { return "key_down_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "key_down_event{";
+        ss << "key_down_event { ";
         ss << "key: " << m_key << ", ";
         ss << "code: " << m_code << ", ";
         ss << "mods: " << m_mods << ", ";
-        ss << "repeat: " << (m_is_repeat ? "true" : "false") << "}";
+        ss << "repeat: " << (m_is_repeat ? "true" : "false") << " }";
         return ss.str();
     }
 
@@ -292,10 +292,10 @@ class key_up_event : public event {
     auto get_name() const -> std::string override { return "key_up_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "key_up_event{";
+        ss << "key_up_event { ";
         ss << "key: " << m_key << ", ";
         ss << "code: " << m_code << ", ";
-        ss << "mods: " << m_mods << "}";
+        ss << "mods: " << m_mods << "} ";
         return ss.str();
     }
 
@@ -319,8 +319,8 @@ class key_typed : public event {
     auto get_name() const -> std::string override { return "key_typed_event"; }
     auto to_string() const -> std::string override {
         std::stringstream ss;
-        ss << "key_typed_event{";
-        ss << "code: " << m_code_point << "}";
+        ss << "key_typed_event { ";
+        ss << "code: " << m_code_point << " }";
         return ss.str();
     }
 

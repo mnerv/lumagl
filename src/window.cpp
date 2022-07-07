@@ -5,17 +5,22 @@
 #include <iostream>
 
 namespace luma {
+static auto setup_opengl() -> void {
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+}
+
 window::window(std::string const& name, int32_t const& width, int32_t const& height) {
     if (!glfwInit()) throw std::runtime_error("error initialising glfw");
     m_data.width  = width;
     m_data.height = height;
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    setup_opengl();
 
     m_window = glfwCreateWindow(m_data.width, m_data.height, name.c_str(), nullptr, nullptr);
-    if (!m_window) throw std::runtime_error("Failed to create window");
+    if (!m_window)
+        throw std::runtime_error("Failed to create window");
 
     glfwGetWindowPos(m_window, &m_data.x, &m_data.y);
     glfwMakeContextCurrent(m_window);

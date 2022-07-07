@@ -17,8 +17,8 @@ Download the required dependencies above. The `glfw` and `glad` library needs to
 be build first. When selecting glad make sure to select gl `Version 4.1` and
 profile in `Compatibility`. The build output needs to be in `lib` library.
 
-Define theses environment variables `GLFW_PATH`, `GLAD_PATH`, `IMGUI_PATH`,
-`STB_PATH` and `GLM_PATH` that points to the correct path.
+Define theses environment variables `GLFW_SDK`, `GLAD_SDK`, `IMGUI_SDK`,
+`STB_SDK` and `GLM_SDK` that points to the correct path.
 
 Use `premake5` to create the project, use `premake5 --help` to get the different
 targets.
@@ -57,3 +57,4 @@ preamek5 gmake2
 ### algorithms
 
  - [Delaunay triangulation](https://en.wikipedia.org/wiki/Bowyer–Watson_algorithm) - For mesh creation
+
