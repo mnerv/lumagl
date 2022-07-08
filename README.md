@@ -29,6 +29,12 @@ Example `Makefile`
 preamek5 gmake2
 ```
 
+## Meson
+
+```
+meson setup build -Dglfw=$GLFW_SDK -Dglad=$GLAD_SDK -Dstb=$STB_SDK -Dglm=$GLM_SDK -Dimgui=$IMGUI_SDK
+```
+
 ## resources
 
  - [Learn OpenGL](https://learnopengl.com)

@@ -1,0 +1,6 @@
+option('glfw',  type: 'string', description: 'GLFW')
+option('glad',  type: 'string', description: 'Glad')
+option('stb',   type: 'string', description: '')
+option('glm',   type: 'string', description: '')
+option('imgui', type: 'string', description: '')
+
