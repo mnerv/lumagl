@@ -4,7 +4,6 @@ This project is for learning purpose only.
 
 ## requirements
 
-  - [premake5](https://premake.github.io)
   - [glfw](https://github.com/glfw/glfw)
   - [glad](https://glad.dav1d.de) or [mononerv/glad](https://github.com/mononerv/glad)
   - [stb](https://github.com/nothings/stb)
@@ -20,16 +19,7 @@ profile in `Compatibility`. The build output needs to be in `lib` library.
 Define theses environment variables `GLFW_SDK`, `GLAD_SDK`, `IMGUI_SDK`,
 `STB_SDK` and `GLM_SDK` that points to the correct path.
 
-Use `premake5` to create the project, use `premake5 --help` to get the different
-targets.
-
-Example `Makefile`
-
-```
-preamek5 gmake2
-```
-
-## Meson
+Use `meson` to generate `ninja` build system.
 
 ```
 meson setup build -Dglfw=$GLFW_SDK -Dglad=$GLAD_SDK -Dstb=$STB_SDK -Dglm=$GLM_SDK -Dimgui=$IMGUI_SDK
