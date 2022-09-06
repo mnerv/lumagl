@@ -69,7 +69,7 @@ imgui = declare_dependency(
 
 executable(
   'luma',
-  [
+  [  # ls src -1 --sort=extension
     'src/buffer.hpp',
     'src/camera.hpp',
     'src/event.hpp',
