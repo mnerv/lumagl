@@ -2,6 +2,8 @@ project('luma', 'cpp',
     version: '0.0.1',
     default_options: [
         'cpp_std=c++20',
+        'warning_level=3',
+        'werror=true'
     ]
 )
 
@@ -25,7 +27,7 @@ glfw = declare_dependency(
 )
 glad_path = get_option('glad')
 glad = declare_dependency(
-    dependencies: cpp.find_library('glad', dirs: join_paths(glad_path, 'lib')),
+    dependencies: cpp.find_library('glad', dirs: join_paths(glad_path, 'build')),
     include_directories: join_paths(glad_path, 'include')
 )
 # Header library
@@ -102,6 +104,8 @@ executable(
         stb,
         glm,
         imgui,
-    ] + core_deps
+    ] + core_deps,
+    override_options: [
+    ]
 )
 
