@@ -1,4 +1,4 @@
-# luma_gl
+# luma
 
 This project is for learning purpose only.
 
