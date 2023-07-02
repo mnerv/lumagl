@@ -117,7 +117,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     luma::shader shader{vertex_shader, fragment_shader};
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/o.jpg");
+    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/nurture.jpeg");
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();

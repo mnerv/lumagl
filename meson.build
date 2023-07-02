@@ -6,6 +6,7 @@ project('luma', 'cpp',
     'werror=true'
   ]
 )
+add_project_arguments('-Wno-deprecated-volatile', language: 'cpp')
 
 cpp = meson.get_compiler('cpp')
 core_deps = []

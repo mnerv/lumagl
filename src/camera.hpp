@@ -7,7 +7,7 @@
 namespace luma {
 class camera {
   public:
-    float near = 0.01f;
+    float near = 0.1f;
     float far  = 1000.0f;
 
     glm::vec3 position{0.0f, 0.0f, 1.0f};
