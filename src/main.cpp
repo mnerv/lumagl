@@ -86,7 +86,7 @@ void main() {
 )";
 
 auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> int32_t {
-    luma::window window{};
+    luma::window window{"Hello, Grid!", 1280, 720};
     //window.position(luma::DONT_CARE, -800);
 
     int32_t width, height;

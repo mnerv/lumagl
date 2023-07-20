@@ -2,6 +2,8 @@
 
 This project is for learning purpose only.
 
+![Screenshot of the application running on macOS. It is showing an image on a 2D grid on a 3D plane.](./preview.png)
+
 ## requirements
 
   - [glfw](https://github.com/glfw/glfw)
