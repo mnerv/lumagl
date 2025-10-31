@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <filesystem>
 #include <array>
-#include <cmath>
+#include <numbers>
 
 #include "luma.hpp"
 #include "window.hpp"
@@ -17,9 +17,9 @@
 #include "grid.hpp"
 #include "event.hpp"
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+// #include "imgui.h"
+// #include "imgui_impl_glfw.h"
+// #include "imgui_impl_opengl3.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -94,21 +94,21 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     int32_t w_width, w_height;
     glfwGetWindowSize(window.get_native(), &w_width, &w_height);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    ImGui::StyleColorsDark();
-
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        style.WindowRounding= 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-    ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
-    ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
+    // IMGUI_CHECKVERSION();
+    // ImGui::CreateContext();
+    // ImGuiIO& io = ImGui::GetIO();
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    // ImGui::StyleColorsDark();
+    //
+    // ImGuiStyle& style = ImGui::GetStyle();
+    // if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    //     style.WindowRounding= 0.0f;
+    //     style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    // }
+    // ImGui_ImplGlfw_InitForOpenGL(window.get_native(), true);
+    // ImGui_ImplOpenGL3_Init(luma::window::GLSL_VERSION);
 
     luma::buffer::layout vertex_layout{
         {luma::shader::type::vec3, "a_position"},
@@ -117,7 +117,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     luma::shader shader{vertex_shader, fragment_shader};
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    auto texture = luma::make_ref<luma::texture>("/Users/k/Downloads/nurture.jpeg");
+    auto texture = luma::make_ref<luma::texture>("C:/Users/miku/Downloads/nurture.jpg");
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();
@@ -189,7 +189,7 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto on_wheel = [&](luma::event const& e) {
         auto evt = static_cast<luma::mouse_wheel_event const&>(e);
         if (arcball_on) {
-            glm::vec2 d_angle{2.0 * M_PI / float(width), 2.0 * M_PI / float(height)};
+            glm::vec2 d_angle{2.0 * std::numbers::pi / float(width), 2.0 * std::numbers::pi / float(height)};
             glm::vec4 position{camera.position.x, camera.position.y, camera.position.z, 1.0f};
             glm::vec4 pivot{camera.target.x, camera.target.y, camera.target.z, 1.0f};
 
@@ -335,10 +335,10 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         screen_ib->bind();
         glDrawElements(GL_TRIANGLES, screen_ib->count(), GL_UNSIGNED_INT, 0);
 
-        // New Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+        // // New Dear ImGui frame
+        // ImGui_ImplOpenGL3_NewFrame();
+        // ImGui_ImplGlfw_NewFrame();
+        // ImGui::NewFrame();
 
         //auto dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
@@ -364,25 +364,25 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         //}
         //ImGui::End();
 
-        ImGui::Render();
-
-         // Begin ImGui Draw
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            auto backup_current = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current);
-        }
+        // ImGui::Render();
+        //
+        //  // Begin ImGui Draw
+        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        //     auto backup_current = glfwGetCurrentContext();
+        //     ImGui::UpdatePlatformWindows();
+        //     ImGui::RenderPlatformWindowsDefault();
+        //     glfwMakeContextCurrent(backup_current);
+        // }
 
         window.swap();
         window.poll();
     }
 
     // Dear ImGui cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    // ImGui_ImplOpenGL3_Shutdown();
+    // ImGui_ImplGlfw_Shutdown();
+    // ImGui::DestroyContext();
 
     glDeleteTextures(1, &texture_render_buffer);
     glDeleteRenderbuffers(1, &render_buffer);

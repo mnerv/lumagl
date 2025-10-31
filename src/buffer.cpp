@@ -1,4 +1,7 @@
 #include "buffer.hpp"
+
+#include <algorithm>
+
 #include "glad/glad.h"
 #include "mesh.hpp"
 

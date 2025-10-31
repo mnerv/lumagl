@@ -1,43 +1,41 @@
-# ┃ Outputs
-# ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ #
+# CMake
+build*
+cmake-build-*
+!build*.sh
 
-## Binaries
-**/bin
-**/obj
-
-# Dear ImGui
-imgui.ini
-
-# ┃ Generated Workspaces
-# ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ #
-
-## Xcode
+# Xcode
 *.xcworkspace
 *.xcodeproj
 
-## Visual Studio
+# Visual Studio
 *.sln
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
 .vs
 
-## Makefile
+# Makefile
 Makefile
 *.make
 
-## nvim
+# lsp
+.cache
 .ccls
 .ccls-cache
 compile_commands.json
 
-## Visual Studio Code
+# Visual Studio Code
 .vscode
 
-# ┃ System Files
-# ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ #
+# IntelliJ
+.idea
 
-## macOS
+# macOS
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# JetBrains Fleet
+.fleet
+.cache
+
