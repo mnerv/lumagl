@@ -20,7 +20,7 @@ uint32_t grid::ccw_indices[]{
     0, 3, 2,
 };
 
-char const* grid::vertex_shader   = R"(#version 410 core
+char const* grid::vertex_shader = R"glsl(#version 410 core
 layout (location = 0) in vec2 a_position;
 #ifdef GL_FRAGMENT_PRECISION_HIGH
   precision highp float;
@@ -47,9 +47,9 @@ void main() {
     far  = unproject_point(p.x, p.y,  1.f);
     gl_Position = vec4(a_position, 0.0f, 1.0f);
 }
-)";
+)glsl";
 
-char const* grid::fragment_shader = R"(#version 410 core
+char const* grid::fragment_shader = R"glsl(#version 410 core
 #ifdef GL_FRAGMENT_PRECISION_HIGH
   precision highp float;
 #else
@@ -114,7 +114,7 @@ void main() {
     o_color *= is_on;
     gl_FragDepth = compute_depth(R);
 }
-)";
+)glsl";
 
 grid::grid(bool const& is_cw) {
     m_shader        = shader::create(vertex_shader, fragment_shader);

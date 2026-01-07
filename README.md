@@ -14,6 +14,14 @@ This project is for learning purpose only.
 
 ## development
 
+### cmake
+
+```sh
+cmake -S . -Bbuild -GNinja
+```
+
+### meson
+
 Download the required dependencies above. The `glfw` and `glad` library needs to
 be build first. When selecting glad make sure to select gl `Version 4.1` and
 profile in `Compatibility`. The build output needs to be in `lib` library.
