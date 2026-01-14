@@ -145,4 +145,3 @@ auto grid::render(glm::mat4 const& view, glm::mat4 const& projection, glm::vec2 
     glDrawElements(GL_TRIANGLES, m_index_buffer->count(), GL_UNSIGNED_INT, 0);
 }
 }
-

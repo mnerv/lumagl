@@ -52,12 +52,14 @@ auto texture::create_texture() -> uint32_t {
     uint32_t id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
-    uint32_t format = m_image->channels() == 4 ? GL_RGBA : GL_RGB;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, m_image->width(), m_image->height(), 0, format, GL_UNSIGNED_BYTE, m_image->buffer());
+    uint32_t const format = m_image->channels() == 4 ? GL_RGBA : GL_RGB;
+    uint32_t const internal = m_image->channels() == 4 ? GL_RGBA8 : GL_RGB8;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal, m_image->width(), m_image->height(), 0,
+                 format, GL_UNSIGNED_BYTE, m_image->buffer());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
     return id;
 }
 }
-

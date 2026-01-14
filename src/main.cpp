@@ -13,7 +13,16 @@
 #include "grid.hpp"
 #include "event.hpp"
 
+// #include "imgui.h"
+// #include "imgui_impl_glfw.h"
+// #include "imgui_impl_opengl3.h"
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/glm.hpp"
 
 auto vertex_shader = R"glsl(#version 410 core
 layout (location = 0) in vec3 a_position;
@@ -91,7 +100,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     };
     luma::shader shader{vertex_shader, fragment_shader};
     luma::shader screen_shader{screen_vertex_shader, screen_fragment_shader};
-    auto texture = luma::make_ref<luma::texture>("./preview.png");
+    auto texture = luma::make_ref<luma::texture>("C:/Users/miku/Downloads/profilepic.png");
+
+    std::cout << texture->get_image()->info() << "\n";
 
     auto plane = luma::mesh::plane();
     auto plane_va = luma::buffer::array::create();
@@ -158,7 +169,57 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
     auto is_running = true;
 
     bool arcball_on = true;
+    bool is_mouse_down = false;
     float arcball_speed = 4.0f;
+
+
+    // persistent
+    glm::quat cam_q{1,0,0,0};
+    glm::vec3 world_up = glm::normalize(glm::vec3(0,1,0));
+
+    auto on_mouse_move = [&](luma::event const& e) {
+        if (!is_mouse_down) return;
+        auto const& evt = static_cast<luma::mouse_move_event const&>(e);
+        mouse_current = {evt.x(), evt.y()};
+
+        if (arcball_on) {
+            float const orbit_radius = glm::length(camera.position - camera.target);
+
+            glm::vec2 d_angle{
+                2.0f * float(std::numbers::pi) / float(width),
+                2.0f * float(std::numbers::pi) / float(height)
+            };
+
+            float dx = (mouse_current.x - mouse_previous.x) * d_angle.x * arcball_speed;
+            float dy = (mouse_current.y - mouse_previous.y) * d_angle.y * arcball_speed;
+
+            // Camera's current up from orientation
+            glm::vec3 cam_up = glm::normalize(cam_q * glm::vec3(0,1,0));
+
+            // If upside-down, invert yaw so left/right drag stays intuitive
+            float upSign = (glm::dot(cam_up, world_up) >= 0.0f) ? 1.0f : -1.0f;
+            float yaw   = -dx * upSign;
+            float pitch = -dy;
+
+            glm::vec3 right = glm::normalize(cam_q * glm::vec3(1,0,0));
+
+            glm::quat q_yaw   = glm::angleAxis(yaw, world_up);
+            glm::quat q_pitch = glm::angleAxis(pitch, right);
+
+            cam_q = glm::normalize(q_yaw * q_pitch * cam_q);
+
+            glm::vec3 forward = glm::normalize(cam_q * glm::vec3(0,0,-1));
+            glm::vec3 final_position = camera.target - forward * orbit_radius;
+
+            // Optional: keep camera.up derived from orientation (roll allowed)
+            camera.up = glm::normalize(cam_q * glm::vec3(0,1,0));
+
+            camera.position = final_position;
+        }
+
+        mouse_previous = mouse_current;
+    };
+
 
     auto on_wheel = [&](luma::event const& e) {
         auto evt = static_cast<luma::mouse_wheel_event const&>(e);
@@ -180,8 +241,9 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
             camera.position = final_position;
         } else if(luma::state::is_press(zoom_on)) {
+            const float sensitivity = 100.0f;
             auto front_vector = glm::normalize(camera.position - camera.target);
-            glm::vec3 move_delta = front_vector * float(delta_time) * float(evt.y());
+            glm::vec3 move_delta = front_vector * float(delta_time) * float(evt.y() * sensitivity);
             camera.position += move_delta;
         } else if (luma::state::is_press(pan_on)) {
             auto front_vector = camera.front();
@@ -204,10 +266,21 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
         if (evt.key() == GLFW_KEY_LEFT_SHIFT || evt.key() == GLFW_KEY_LEFT_CONTROL)
             arcball_on = true;
     };
+    auto on_mouse_down = [&](luma::event const& e) {
+        auto evt = static_cast<luma::mouse_press_event const&>(e);
+        is_mouse_down = true;
+    };
+    auto on_mouse_up = [&](luma::event const& e) {
+        auto evt = static_cast<luma::mouse_release_event const&>(e);
+        is_mouse_down = false;
+    };
 
     window.add_event_listener(luma::event::type::key_down, on_key_down);
     window.add_event_listener(luma::event::type::key_up, on_key_up);
     window.add_event_listener(luma::event::type::mouse_wheel, on_wheel);
+    window.add_event_listener(luma::event::type::mouse_move, on_mouse_move);
+    window.add_event_listener(luma::event::type::mouse_press, on_mouse_down);
+    window.add_event_listener(luma::event::type::mouse_release, on_mouse_up);
 
     // GOAL: Blender camera navigation
     //          #1. Orbit:
@@ -318,4 +391,3 @@ auto main([[maybe_unused]]int32_t argc, [[maybe_unused]]char const* argv[]) -> i
 
     return 0;
 }
-

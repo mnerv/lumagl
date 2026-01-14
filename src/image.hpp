@@ -17,9 +17,9 @@ class image {
     auto channels() const -> int32_t { return m_channels; }
 
     auto info() const -> std::string {
-        return std::string("luma::image{width: ") + std::to_string(m_width) 
+        return std::string("luma::image: { width: ") + std::to_string(m_width)
                + ", height: "   + std::to_string(m_height)
-               + ", channels: " + std::to_string(m_channels) + "}";
+               + ", channels: " + std::to_string(m_channels) + " }";
     }
 
   private:
@@ -31,4 +31,3 @@ class image {
     bool        m_is_loaded;
 };
 }
-
